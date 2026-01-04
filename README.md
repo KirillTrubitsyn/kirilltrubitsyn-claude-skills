@@ -13,6 +13,7 @@
 | [legal-summary-html](.claude/skills/legal-summary-html/) | Интерактивные резюме арбитражных решений | HTML |
 | [analytics-reports](.claude/skills/analytics-reports/) | Аналитические отчёты с графиками | HTML |
 | [rag-kit](.claude/skills/rag-kit/) | RAG интеграция с xAI Grok и Google Gemini | JS |
+| [google-search](.claude/skills/google-search/) | Веб-поиск через Google Custom Search API | JS |
 
 ## Когда использовать
 
@@ -61,6 +62,13 @@
 - Google Gemini для генерации ответов
 - Веб-поиск для актуальной информации
 - Готовые шаблоны API endpoints
+
+### google-search
+Веб-поиск через Google Custom Search API.
+- Поиск актуальной информации в интернете
+- Автоматический поиск по триггерам
+- Ранжирование результатов по приоритету доменов
+- Готовые UI компоненты (toggle, источники)
 
 ## Установка
 
@@ -114,15 +122,25 @@ Skills автоматически активируются при соответ
 │   └── SKILL.md
 ├── legal-summary-html/
 │   └── SKILL.md
-└── rag-kit/
+├── rag-kit/
+│   ├── SKILL.md
+│   ├── api-reference.md
+│   ├── examples.md
+│   └── templates/
+│       ├── chat-endpoint.js
+│       ├── config-template.js
+│       ├── env-example.txt
+│       └── upload-endpoint.js
+└── google-search/
     ├── SKILL.md
     ├── api-reference.md
     ├── examples.md
+    ├── lib/
+    │   └── google-search.js
     └── templates/
-        ├── chat-endpoint.js
-        ├── config-template.js
         ├── env-example.txt
-        └── upload-endpoint.js
+        ├── web-search.js
+        └── web-search-ui.js
 ```
 
 ## Лицензия
