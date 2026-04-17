@@ -1,5 +1,5 @@
 ---
-name: security-audit
+name: security-audit-v2
 description: >
   Комплексный аудит безопасности веб-приложений и AI-систем. Универсальный скилл для
   любого стека (Next.js, React, Vue, Express, Django, FastAPI, Rails, Go, Rust и др.)
