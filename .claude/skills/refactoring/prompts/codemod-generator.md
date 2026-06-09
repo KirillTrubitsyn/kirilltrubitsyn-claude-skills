@@ -27,6 +27,7 @@ Codemod НЕ уместен, если:
 | **jscodeshift** | Классические JS/React-миграции | Огромная экосистема готовых transforms |
 | **comby** | Структурная замена с match-patterns, мультиязык | Простой синтаксис, работает вне специфики языка |
 | **OpenRewrite** | Java/Kotlin/XML/YAML | Recipe-based, отличная поддержка enterprise-проектов |
+| **codemod.com (codemod CLI)** | Готовые рецепты фреймворк-миграций (React 19, Next.js 16 и др.) | Реестр проверенных рецептов: `npx codemod <recipe>`; не пиши свой codemod, если рецепт уже есть |
 
 ## Шаблон промпта
 
@@ -209,5 +210,6 @@ npx react-codemod class-to-function src/
 - jscodeshift: [https://github.com/facebook/jscodeshift](https://github.com/facebook/jscodeshift).
 - comby: [https://comby.dev/](https://comby.dev/).
 - OpenRewrite: [https://docs.openrewrite.org/](https://docs.openrewrite.org/).
-- React codemod recipes: [https://github.com/reactjs/react-codemod](https://github.com/reactjs/react-codemod).
-- Next.js codemods: `npx @next/codemod`.
+- React codemod recipes: [https://github.com/reactjs/react-codemod](https://github.com/reactjs/react-codemod); миграция на React 19: `npx codemod react/19/migration-recipe`.
+- Next.js codemods: `npx @next/codemod` (апгрейд на 16: `npx @next/codemod upgrade`).
+- Реестр рецептов: [https://codemod.com](https://codemod.com).

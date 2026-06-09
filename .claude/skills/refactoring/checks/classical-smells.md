@@ -127,7 +127,7 @@ function handle(a: Action): void {
 
 Неиспользуемые функции, поля, импорты, ветки условий. Создают ложное ощущение сложности.
 
-**Рефакторинг**: Remove Dead Code. Инструменты: `knip`, `ts-prune`, `unimport`, `vulture` (Python), `deadcode` (Go).
+**Рефакторинг**: Remove Dead Code. Инструменты: `knip` (стандарт де-факто для JS/TS; ts-prune заморожен и сам рекомендует knip), `unimport`, `vulture` (Python), `deadcode` (Go).
 
 #### 17. Speculative Generality
 
@@ -185,7 +185,6 @@ grep -rnE "\b[0-9]{2,}\b" --include="*.{ts,tsx}" | grep -vE "(test|spec|\.d\.ts|
 
 # Dead code (JS/TS):
 npx knip
-npx ts-prune
 
 # Цикломатическая сложность:
 npx eslint . --rule 'complexity: ["error", 10]'

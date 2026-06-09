@@ -76,6 +76,8 @@ START
 
 3. **Plan Mode обязателен**. В Claude Code активируй Plan Mode (Shift+Tab до появления режима). В Cursor — используй feature «Plan». План, прочитанный человеком, убирает 80% проблем.
 
+3a. **Hooks и чекпоинты как guardrails**. В агентных инструментах настрой автоматический прогон тестов/линтера после каждого изменения (в Claude Code — hooks: `PostToolUse` на Edit/Write с командой тестов). Откат — через git-коммиты после каждого зелёного шага, а не через память сессии.
+
 4. **Жёсткий требование идентичного поведения**. В каждый промпт добавляй фразу: `behavior must be identical; run the full test suite before and after each step; if any test fails, revert and stop`. Это критичный анти-drift.
 
 5. **Маленькие сессии**. Крупный рефакторинг — это цепочка маленьких сессий, не одна длинная. Чем дольше сессия, тем выше риск контекстного дрейфа.
@@ -109,7 +111,7 @@ ROLE
 Ты выступаешь в роли senior engineer, выполняющего дисциплинированный рефакторинг...
 
 CONTEXT
-Проект: internal SaaS на Next.js 15 + Drizzle + PostgreSQL
+Проект: internal SaaS на Next.js 16 + Drizzle + PostgreSQL
 Корневая папка: /Users/me/projects/saas
 Затрагиваемая область: src/features/billing/
 Запрещено трогать: src/app/, src/components/ui/, drizzle/

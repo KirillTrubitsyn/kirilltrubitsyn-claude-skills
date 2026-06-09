@@ -2,7 +2,7 @@
 
 ## Что проверять
 
-Классические smells + набор, специфичный именно для React. Правила актуальны для React 18/19 (включая RSC).
+Классические smells + набор, специфичный именно для React. Правила актуальны для React 19.x (включая RSC и React Compiler). Зафиксируй точную версию из `package.json`: проекты на React 19.0–19.2.2 нужно немедленно обновить до ≥ 19.2.3 (CVE-2025-55182 — RCE в React Server Components) — это не рефакторинг, а блокирующий security-фикс отдельным коммитом.
 
 ### 1. Prop Drilling
 
@@ -103,7 +103,7 @@ const config = useMemo(() => ({ sortable: true }), []);
 
 Важно: без `React.memo` у дочернего компонента такая оптимизация бесполезна. Не бросай `useCallback`/`useMemo` на всё — только там, где измерено.
 
-В React 19 появился **React Compiler**, который автоматизирует значительную часть мемоизации. Проверь, включён ли он (`babel-plugin-react-compiler`). Если да — многие ручные `useCallback`/`useMemo` становятся лишними.
+**React Compiler 1.0 стабилен** (октябрь 2025) и автоматизирует мемоизацию на этапе сборки. Проверь, включён ли он: `babel-plugin-react-compiler` в babel-конфиге или `reactCompiler` в `next.config.ts` (Next.js 16 поддерживает его из коробки). Если включён — ручная мемоизация в новом коде не нужна, а существующие `useCallback`/`useMemo` можно постепенно удалять, проверяя DevTools Profiler. Внедрять компилятор безопаснее инкрементально: `compilationMode: "annotation"` + директива `"use memo"` по файлам, предварительно прогнав правила компилятора из `eslint-plugin-react-hooks@6` (компилятор молча пропускает файлы с нарушениями Rules of React).
 
 ### 6. Children-as-function утечки
 
@@ -142,8 +142,9 @@ const config = useMemo(() => ({ sortable: true }), []);
 ### 10. Неправильные зависимости useEffect / useMemo / useCallback
 
 - Массив зависимостей вручную «оптимизирован» (что-то пропущено) → stale closures.
-- `eslint-plugin-react-hooks/exhaustive-deps` должен быть `error`, не `warn`.
+- `eslint-plugin-react-hooks/exhaustive-deps` должен быть `error`, не `warn`. Используй `eslint-plugin-react-hooks@6+` — flat config по умолчанию, понимает `useEffectEvent`, опциональные правила на базе React Compiler.
 - Если ESLint требует зависимости, которая «не нужна» — проблема не в ESLint, а в дизайне компонента.
+- Каждый `// eslint-disable-next-line react-hooks/exhaustive-deps` в кодовой базе — кандидат на рефакторинг через **`useEffectEvent`** (стабилен с React 19.2): он выделяет «событийную» часть логики из эффекта, всегда видит свежие props/state и не указывается в зависимостях. Правила: объявлять в том же компоненте/хуке, не передавать как проп, не использовать просто для глушения линтера.
 
 ### 11. Формы через useState для каждого поля
 
@@ -206,7 +207,25 @@ useEffect(() => {
 
 **Рефакторинг**: variant-пропс с дискриминированным типом (`variant: "primary" | "secondary"`); отдельные компоненты (`PrimaryButton`, `SecondaryButton`), если вариаций мало; CVA (class-variance-authority) для styling-вариантов.
 
-### 16. useContext без мемоизации value
+### 16. Устаревшие API: forwardRef, propTypes, string refs
+
+В React 19 `ref` передаётся как обычный проп — `forwardRef` больше не нужен и будет deprecated. `propTypes`, `contextTypes` и string refs удалены.
+
+```tsx
+// Устаревший паттерн
+const Input = forwardRef<HTMLInputElement, Props>((props, ref) => (
+  <input ref={ref} {...props} />
+));
+
+// React 19
+function Input({ ref, ...props }: Props & { ref?: React.Ref<HTMLInputElement> }) {
+  return <input ref={ref} {...props} />;
+}
+```
+
+**Рефакторинг**: механическая миграция через codemod (`npx codemod react/19/migration-recipe` или `types-react-codemod` для типов). Отдельный mechanical-коммит.
+
+### 17. useContext без мемоизации value
 
 ```tsx
 // Smell — value создаётся заново каждый рендер провайдера
@@ -247,6 +266,8 @@ grep -rn "react-hooks/exhaustive-deps" .eslintrc.* biome.json eslint.config.*
 ## На что обращать внимание дополнительно
 
 - **React 19**: новые хуки (`use`, `useActionState`, `useOptimistic`) заменяют часть паттернов. Проверь, не использует ли код устаревшие паттерны форм.
-- **React Compiler**: если включён, не плоди ручную мемоизацию.
+- **React 19.2**: `useEffectEvent` — стабильное решение stale closures в эффектах; `<Activity />` — скрытие UI без потери состояния (заменяет костыли с `display: none` + сохранением state вручную для табов/модалок).
+- **React Compiler**: стабилен с 1.0. Если включён, не плоди ручную мемоизацию; существующую удаляй постепенно с проверкой профайлером.
 - **Concurrent rendering**: `useTransition`, `useDeferredValue` для тяжёлых обновлений.
 - **Strict Mode**: компоненты должны быть устойчивы к двойному рендеру в dev. Если что-то ломается только в Strict Mode — это реальный баг, а не ложное срабатывание.
+- **Безопасность**: React < 19.2.3 с RSC уязвим к CVE-2025-55182. Проверка версии — обязательная часть шага автодетекции стека.
