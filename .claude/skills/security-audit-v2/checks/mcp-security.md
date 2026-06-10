@@ -1,6 +1,10 @@
 # MCP (Model Context Protocol) Security
 
-Применяй этот модуль, если проект использует MCP-серверы (Anthropic MCP, Claude Desktop, Cursor, клиенты через `mcp-remote`, собственные серверы на `@modelcontextprotocol/sdk` или `fastmcp`). MCP за 2025–2026 год стал массовой поверхностью атаки: тулз-пойзонинг, rug pull, command injection в tool handlers, cross-tenant утечки, RCE через OAuth-прокси. Основные публичные инциденты: CVE-2025-6514 (mcp-remote RCE, CVSS 9.6), CVE-2025-68143 / 68144 / 68145 (цепочка в Anthropic mcp-server-git → RCE через `.git/config`), инцидент Asana MCP (cross-tenant leak), GitHub MCP (exfiltration через over-privileged PAT), системная уязвимость MCP 15 апреля 2026 (Ox Security, 150M+ загрузок).
+Применяй этот модуль, если проект использует MCP-серверы (Anthropic MCP, Claude Desktop, Cursor, клиенты через `mcp-remote`, собственные серверы на `@modelcontextprotocol/sdk` или `fastmcp`). MCP за 2025–2026 год стал массовой поверхностью атаки: тулз-пойзонинг, rug pull, command injection в tool handlers, cross-tenant утечки, RCE через OAuth-прокси. Основные публичные инциденты: CVE-2025-6514 (mcp-remote RCE, CVSS 9.6), CVE-2025-68143 / 68144 / 68145 (цепочка в Anthropic mcp-server-git → RCE через `.git/config`), инцидент Asana MCP (cross-tenant leak), GitHub MCP (exfiltration через over-privileged PAT).
+
+**Главный сдвиг 2026 года: уязвимость на уровне протокола, не реализации.** Раскрытие OX Security «The Mother of All AI Supply Chains» (15–20 апреля 2026) показало, что STDIO transport официальных MCP SDK (Python, TypeScript, Java, Rust) передаёт command-строку из конфига в `subprocess.Popen` / `child_process.spawn` и **исполняет её до валидации MCP handshake** — команда успевает отработать, даже если соединение затем отклонено. Anthropic подтвердил это как intended design. Затронуто ~200 000 инстансов, 150M+ загрузок; за январь–апрель 2026 подано 40+ CVE. Четыре вектора из одного корня: (1) unauthenticated command injection через web-интерфейсы фреймворков, (2) allowlist bypass через argument injection, (3) zero-click prompt injection в AI IDE, (4) marketplace poisoning (9 из 11 реестров приняли вредоносный PoC без детекции). Активно эксплуатируются: CVE-2026-33032 (nginx-ui «MCPwn», 9.8), CVE-2026-5058/9 (aws-mcp-server pre-auth RCE), CVE-2026-32211 (@azure-devops/mcp auth bypass), CVE-2026-30615 (Windsurf zero-click, на май 2026 не исправлено).
+
+**Маппинг на OWASP Top 10 for Agentic Applications:2026**: MCP-риски ложатся преимущественно на ASI04 (Agentic Supply Chain Vulnerabilities), ASI02 (Tool Misuse), ASI03 (Identity & Privilege Abuse), ASI05 (Unexpected Code Execution). Используй эти коды в отчёте наряду с CVE.
 
 ## Что проверять
 
@@ -51,7 +55,9 @@ MCP-серверы могут менять определения tools межд
 - HTTPS для всех remote MCP. Явно блокировать HTTP (CVE-2025-6514 эксплуатировалась при downgrade на HTTP).
 - Для локальных MCP-серверов на HTTP transport: проверка защиты от DNS rebinding (инцидент Vet MCP, июль 2025). Сервер должен проверять заголовок `Host`, `Origin`, использовать случайный порт и auth token.
 - `mcp-remote` как OAuth-прокси: версия ≥ 0.1.16 (фикс CVE-2025-6514). Версии 0.0.5–0.1.15 — критично.
-- MCP Inspector в dev-режиме: не должен быть доступен на `0.0.0.0` без auth (был RCE через unauthenticated inspector).
+- MCP Inspector в dev-режиме: не должен быть доступен на `0.0.0.0` без auth (CVE-2025-49596, CVSS 9.4 — unauthenticated RCE). MCPJam Inspector — CVE-2026-23744 (unauthenticated endpoint на 0.0.0.0 устанавливает произвольный MCP-сервер).
+- **OAuth в MCP-спеке объявлен опциональным** — по сканам 2026 года до 38% публичных серверов не требуют аутентификации вообще (Trend Micro: 492 сервера без auth, июль 2025: 1 862 публично доступных инстанса). Если сервер remote — auth должен быть обязательным, не «по желанию».
+- Версия SDK: уязвимость STDIO config-to-exec — на уровне официальных SDK. Проверь, что используется версия с митигацией (после апрельского раунда патчей 2026) и что command-строки в конфиге не формируются из внешнего ввода.
 
 ### 6. Human-in-the-loop для destructive операций
 
@@ -141,14 +147,22 @@ grep -rn "allowedDirectories\|allowed_paths\|roots\[" --include="*.ts" --include
 | ID | Описание | Дата |
 |---|---|---|
 | CVE-2025-6514 | mcp-remote RCE через authorization_endpoint, CVSS 9.6 | июль 2025 |
-| CVE-2025-68143 | mcp-server-git: unrestricted git_init, .ssh → git repo | 2025 |
-| CVE-2025-68144 | mcp-server-git: argument injection в git_diff | 2025 |
-| CVE-2025-68145 | mcp-server-git: path validation bypass | 2025 |
+| CVE-2025-49596 | MCP Inspector: unauthenticated RCE, CVSS 9.4 | 2025 |
+| CVE-2025-54136 | Cursor IDE «MCPoison»: persistent RCE через подмену одобренного конфига | 2025 |
+| CVE-2025-68143/4/5 | mcp-server-git: git_init / argument injection / path bypass → RCE | 2025 |
 | CVE-2025-59528 | Flowise CustomMCP XSS → RCE | апрель 2026 |
-| Ox Security MCP disclosure | Системная уязвимость MCP, 150M+ загрузок | 15 апреля 2026 |
+| CVE-2025-59536 | Claude Code: config injection (Hooks) + `.mcp.json` consent bypass; фикс ≥ 2.0.65 | 2026 |
+| CVE-2026-21852 | Claude Code: кража API-ключа через proxy-редирект; фикс ≥ 2.0.65 | 2026 |
+| OX Security «Mother of All AI Supply Chains» | STDIO config-to-exec на уровне SDK, 200k инстансов, 150M+ загрузок, 40+ CVE | 15–20 апреля 2026 |
+| CVE-2026-33032 | nginx-ui «MCPwn»: 2 HTTP-запроса без auth → захват, CVSS 9.8, **активно эксплуатируется** | 2026 |
+| CVE-2026-5058/5059 | aws-mcp-server: pre-auth RCE через OS command injection (2 точки), CVSS 9.8 | 2026 |
+| CVE-2026-32211 | @azure-devops/mcp: auth bypass → repos/pipelines/API-ключи, CVSS 9.1 | апрель 2026 |
+| CVE-2026-30615 | Windsurf: zero-click prompt injection через HTML → смена MCP-конфига; на май 2026 не исправлено | 2026 |
+| CVE-2026-22252 | LibreChat: STDIO config-to-exec (из OX-раскрытия) | 2026 |
+| CVE-2026-23744 | MCPJam Inspector: unauth endpoint на 0.0.0.0 устанавливает произвольный сервер | 2026 |
+| CVE-2026-23523 | Dive MCP Host: первый host-layer CVE, malicious deeplink → конфиг на клиенте | 2026 |
 | Asana MCP cross-tenant leak | Cross-tenant access через MCP-feature | июнь 2025 |
 | GitHub MCP incident | Over-privileged PAT + untrusted issues → exfiltration | 2025 |
-| Anthropic MCP Inspector RCE | Unauthenticated RCE через inspector-proxy | 2025 |
+| ClawHavoc / ClawHub | 1 184 вредоносных skill-пакета в реестре OpenClaw, 9 CVE | февраль 2026 |
 | Zen MCP path bypass | is_dangerous_path() exact-match bypass | 2025 |
-| Kluster Verify MCP credit drain | Unauthorized tool access → financial DoS | 2025 |
 | Cursor .cursor/mcp.json case bypass | Case-insensitive FS → malicious server injection | 2025 |
