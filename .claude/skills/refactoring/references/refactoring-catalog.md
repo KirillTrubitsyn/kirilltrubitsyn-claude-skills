@@ -301,7 +301,7 @@ if (age >= RETIREMENT_AGE) { ... }
 
 ### Remove Dead Code
 
-`knip` / `ts-prune` / `unimport` — найди, затем удаляй осознанно. Иногда «мёртвый» код — это то, что вызывается через dynamic import или reflection; проверь.
+`knip` / `unimport` — найди, затем удаляй осознанно. Иногда «мёртвый» код — это то, что вызывается через dynamic import или reflection; проверь.
 
 ## React-специфичные рефакторинги
 
@@ -352,11 +352,19 @@ Derived state → вычисление при рендере, а не synchroniz
 
 ### Replace Render Props with Custom Hook
 
-Паттерн render-props в 2025 году почти всегда элегантнее решается кастомным хуком.
+Паттерн render-props почти всегда элегантнее решается кастомным хуком.
 
 ### Convert Class Component to Function Component
 
 Механический рефакторинг через codemod.
+
+### Remove forwardRef (React 19)
+
+`forwardRef` → ref как обычный проп. Механический рефакторинг: `npx codemod react/19/migration-recipe`. См. `checks/react-smells.md`.
+
+### Remove Redundant Memoization (при включённом React Compiler)
+
+Если React Compiler включён и его ESLint-правила зелёные — ручные `useCallback` / `useMemo` / `React.memo` постепенно удаляются. По одному компоненту за коммит, с проверкой DevTools Profiler, что мемоизация осталась (теперь автоматическая).
 
 ## Дисциплина применения
 

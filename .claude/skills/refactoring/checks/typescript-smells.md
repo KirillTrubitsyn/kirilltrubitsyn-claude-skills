@@ -1,5 +1,13 @@
 # TypeScript smells
 
+## Контекст версий (2026)
+
+- **TypeScript 6.0** — последний релиз на старой JS-кодовой базе («Strada»); в нём изменены дефолты (`strict: true` по умолчанию) и объявлены deprecations под 7.0.
+- **TypeScript 7.0** («Corsa», порт компилятора на Go, бинарь `tsgo`) — в 5–10 раз быстрее `tsc`; доступен как `@typescript/native-preview`, стабильный релиз выйдет под пакетом `typescript`. Type-checking идентичен 6.0. Удаляет target ES5, AMD/UMD/SystemJS, classic node resolution.
+- **Node.js исполняет TypeScript нативно** (type stripping, стабильно с Node 22.18+/24.12+): работает только «erasable»-синтаксис — без `enum`, `namespace` с runtime-кодом и parameter properties. Флаг `--erasableSyntaxOnly` (TS 5.8+) проверяет это на этапе компиляции.
+
+Это влияет на рекомендации ниже: enum → `as const`, и медленный `tsc` теперь лечится не только упрощением типов, но и переходом на `tsgo`.
+
 ## Что проверять
 
 ### 1. `any` proliferation
@@ -75,10 +83,11 @@ type OrderId = string & { readonly brand: unique symbol };
 
 ### 5. Enum vs const assertion
 
-В 2025-2026 `enum` в TS считается устаревшим подходом для большинства случаев:
+`enum` в TS — устаревший подход для большинства случаев:
 
 - `const enum` — проблемы с isolated modules, Babel, bundling.
 - Обычный `enum` — странный runtime-объект с обратным маппингом чисел на имена.
+- `enum` (как и `namespace` с runtime-кодом, parameter properties) несовместим с нативным исполнением TS в Node.js (type stripping) и с флагом `erasableSyntaxOnly` — экосистема движется к «только стираемому» синтаксису.
 
 **Рефакторинг**: `as const` + union:
 
@@ -162,6 +171,7 @@ function assertDefined<T>(v: T | null | undefined, msg = "defined"): asserts v i
 - Измерь: `tsc --noEmit --extendedDiagnostics` показывает, какие типы тормозят компиляцию.
 - Упрости сложные условные типы до конкретных (менее гибко, но быстрее).
 - Разбей один огромный тип на несколько именованных.
+- Если узкое место — сам компилятор, а не типы: прогони проект через `tsgo` (`npm i -D @typescript/native-preview`, затем `npx tsgo --noEmit`) — 5–10x ускорение при идентичном type-checking. Это не отменяет упрощение патологических типов, но снимает боль на больших кодовых базах.
 
 ### 12. Missing `readonly`
 
@@ -257,11 +267,10 @@ grep -rn "^enum\|^export enum\|^const enum\|^export const enum" --include="*.ts"
 grep -rnE ":\s*(Function|object)\b|:\s*\{\s*\}" --include="*.ts" --include="*.tsx"
 
 # tsconfig strict-настройки
-cat tsconfig.json | jq '.compilerOptions | { strict, noImplicitAny, noUncheckedIndexedAccess, exactOptionalPropertyTypes, noImplicitOverride, noImplicitReturns, strictNullChecks }'
+cat tsconfig.json | jq '.compilerOptions | { strict, noImplicitAny, noUncheckedIndexedAccess, exactOptionalPropertyTypes, noImplicitOverride, noImplicitReturns, strictNullChecks, erasableSyntaxOnly, verbatimModuleSyntax }'
 
 # Мёртвые экспорты (перед чисткой типов)
-npx ts-prune
-npx knip
+npx knip   # ts-prune заморожен, его автор рекомендует knip
 ```
 
 ## Рекомендуемые настройки tsconfig
@@ -279,10 +288,15 @@ npx knip
     "noUnusedParameters": true,
     // Для устранения enum-проблем при bundling:
     "isolatedModules": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    // Запрещает enum/namespace/parameter properties — готовит код
+    // к нативному исполнению TS в Node.js (type stripping):
+    "erasableSyntaxOnly": true
   }
 }
 ```
+
+`erasableSyntaxOnly` включай, если проект не завязан на enum-интероп (Prisma и другой generated code) — иначе сначала миграция enum → `as const`.
 
 Включение strict-настроек на большой кодовой базе делай поэтапно:
 

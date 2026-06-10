@@ -32,9 +32,10 @@ description: >
 | Файл/паттерн | Что определяет |
 |---|---|
 | `package.json` | Node-экосистема; смотри `dependencies` на фреймворк (next, react, vue, express, nest, remix, astro) |
-| `next.config.*`, `app/`, `pages/` | Next.js. Определи App Router vs Pages Router |
-| `tsconfig.json` | TypeScript. Проверь `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` |
-| `biome.json`, `eslint.config.*`, `.eslintrc.*` | Линтинг |
+| `next.config.*`, `app/`, `pages/` | Next.js. Определи App Router vs Pages Router. Версия 16+: `cacheComponents`, `proxy.ts` вместо `middleware.ts`, Turbopack по умолчанию |
+| `tsconfig.json` | TypeScript. Проверь `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `erasableSyntaxOnly` |
+| `biome.json(c)`, `eslint.config.*`, `.eslintrc.*`, `.oxlintrc.json` | Линтинг. ESLint 9+ — flat config; Biome 2+ и oxlint умеют type-aware правила |
+| `babel-plugin-react-compiler`, `reactCompiler` в next.config | React Compiler включён — влияет на рекомендации по мемоизации |
 | `vitest.config.*`, `jest.config.*`, `playwright.config.*` | Тесты |
 | `requirements.txt`, `pyproject.toml` | Python. Смотри на django/flask/fastapi |
 | `go.mod`, `Cargo.toml` | Go, Rust |
@@ -46,7 +47,8 @@ description: >
 - **Размер кодовой базы**: `cloc .` или `tokei`. От размера зависит стратегия (локальный рефакторинг vs strangler fig).
 - **Покрытие тестами**: прогоняется ли `npm test` без ошибок? Есть ли `coverage`-отчёт?
 - **Статус CI**: есть ли `.github/workflows/`, как выглядят pipeline gates?
-- **Статический анализ**: настроены ли strict-правила TS, Biome, SonarCloud?
+- **Статический анализ**: настроены ли strict-правила TS, Biome, SonarCloud? Есть ли type-aware линтинг (typescript-eslint, Biome 2 Biotype, oxlint + tsgolint)?
+- **Версии ключевых зависимостей**: React, Next.js, TypeScript — рекомендации в модулях `checks/` зависят от версии. Отдельно: React < 19.2.3 с RSC — уязвим (CVE-2025-55182), это блокирующий фикс до любого рефакторинга.
 - **Git-история**: команда работает trunk-based или через long-lived ветки?
 
 Запиши обнаруженный стек в начало отчёта. Без этого следующие шаги бессмысленны.

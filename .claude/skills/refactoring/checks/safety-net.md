@@ -45,8 +45,9 @@
 
 ### 4. Линтинг
 
-- Biome / ESLint / Ruff настроены? Fail-on-warning?
+- Biome / ESLint / oxlint / Ruff настроены? Fail-on-warning?
 - Какие правила отключены? Часто отключают именно те правила, которые ловят проблемные конструкции.
+- Есть ли **type-aware** правила (`no-floating-promises`, `no-unsafe-*`)? Это сильная часть safety net — они ловят реальные баги. Варианты: typescript-eslint (эталон), Biome 2 (Biotype, ~75-85% покрытия правил без tsc), oxlint `--type-aware` (tsgolint поверх tsgo).
 
 ### 5. Mutation testing (бонус)
 
