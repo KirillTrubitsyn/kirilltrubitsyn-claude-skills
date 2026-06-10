@@ -57,7 +57,9 @@
 **Методология:**
 - OWASP Top 10:2025 для веб-приложений
 - OWASP LLM Top 10:2025 для AI-компонентов
-- OWASP GenAI Exploit Round-up Report Q1 2026
+- OWASP Top 10 for Agentic Applications:2026 (ASI01–ASI10) для агентных систем
+- AIVSS для скоринга агентных находок, CycloneDX / AIBOM для AI supply chain
+- OWASP GenAI Exploit Round-up Report
 - [Дополнительные frameworks, если применимо]
 
 ---
@@ -66,7 +68,7 @@
 
 | Компонент | Технология |
 |---|---|
-| Фреймворк | [Next.js 14 / Express 4 / Django 5 / ...] |
+| Фреймворк | [Next.js 16 / Express 5 / Django 5 / ...] |
 | Язык | [TypeScript / Python / Go / ...] |
 | БД | [Supabase PostgreSQL / PlanetScale / MongoDB / ...] |
 | ORM | [Prisma / Drizzle / SQLAlchemy / ...] |

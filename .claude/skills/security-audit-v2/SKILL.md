@@ -94,7 +94,12 @@ description: >
 - **Low** — информационная находка, defense-in-depth улучшение.
 - **Info** — рекомендация по лучшим практикам, не является уязвимостью.
 
-**CWE / OWASP** — маппинг на CWE ID и OWASP Top 10:2025 или OWASP LLM Top 10:2025 категорию. Для AI-дефектов: помни, что большинство AI-инцидентов не имеют CVE и классифицируются как архитектурные дефекты — описывай через data flow и trust boundary violation, не ограничиваясь CVE ID.
+**CWE / OWASP** — маппинг на CWE ID и одну из трёх таксономий:
+- **OWASP Top 10:2025** — для классических web-уязвимостей.
+- **OWASP Top 10 for LLM Applications:2025** — для LLM-приложений (prompt injection, sensitive disclosure, excessive agency и т. д.).
+- **OWASP Top 10 for Agentic Applications:2026** (ASI01–ASI10, выпущен 9 декабря 2025) — для агентных систем (агенты планируют, вызывают инструменты, хранят память, координируются). Не заменяет LLM Top 10, а накладывается поверх. Категории: ASI01 Agent Goal Hijack, ASI02 Tool Misuse & Exploitation, ASI03 Identity & Privilege Abuse, ASI04 Agentic Supply Chain, ASI05 Unexpected Code Execution, ASI06 Memory & Context Poisoning, ASI07 Insecure Inter-Agent Communication, ASI08 Cascading Failures, ASI09 Human-Agent Trust Exploitation, ASI10 Rogue Agents. Для приоритизации агентных рисков используй AIVSS (OWASP AI Vulnerability Scoring System).
+
+Для AI-дефектов: помни, что большинство AI-инцидентов не имеют CVE и классифицируются как архитектурные дефекты — описывай через data flow и trust boundary violation, не ограничиваясь CVE ID.
 
 **Effort** — оценка трудозатрат на исправление: S (до 1 дня), M (1 спринт), L (несколько спринтов).
 
@@ -168,12 +173,14 @@ CRITICAL: <описание> — действия в первые 24 часа: <
 
 ## Что за контекст 2026 года
 
-Ландшафт угроз к апрелю 2026 года существенно сместился:
-- **MCP стал массовой поверхностью атаки**: CVE-2025-6514 (mcp-remote RCE), CVE-2025-68143/4/5 (mcp-server-git chain), Ox Security disclosure 15 апреля 2026 (150M+ загрузок MCP-экосистемы).
-- **Supply chain атаки Q1 2026**: TeamPCP кампания компрометировала LiteLLM (24 марта), Telnyx (27 марта), Axios (30 марта), плюс утечка исходников Claude Code через public npm source map.
+Ландшафт угроз к середине 2026 года существенно сместился:
+- **MCP — массовая поверхность атаки на архитектурном уровне**: OX Security «The Mother of All AI Supply Chains» (15–20 апреля 2026) показал, что STDIO transport официальных MCP SDK (Python, TS, Java, Rust) исполняет команду из конфига до валидации handshake — Anthropic подтвердил это как intended design. ~200 000 уязвимых инстансов, 150M+ загрузок, 40+ CVE за январь–апрель. Активно эксплуатируются CVE-2026-33032 (nginx-ui «MCPwn», 9.8), CVE-2026-5058/9 (aws-mcp-server), CVE-2026-32211 (@azure-devops/mcp). До 38% публичных MCP-серверов вообще без auth.
+- **Supply chain — индустриализованная волна без CVE**: после Q1-кампаний (LiteLLM, Telnyx, Axios) пришли mini-Shai-Hulud / TeamPCP (TanStack 170+ пакетов 11 мая, 323 пакета за час 19 мая), TrapDoor (кросс-реестр npm/PyPI/Crates, 22 мая), Megalodon (5 500+ GitHub-репо), @redhat-cloud-services «Miasma» (1 июня). Ключевой урок: вредоносные пакеты имели **валидные OIDC-подписи и SLSA provenance** — provenance подтверждает pipeline, не безопасность. AI-конфиги (`.cursorrules`, `CLAUDE.md`, `.mcp.json`) стали механизмом персистентности. CVE-сканеры слепы — нужен behavioral-анализ (Socket, SafeDep).
+- **Агентная безопасность институционализирована**: 9 декабря 2025 вышел **OWASP Top 10 for Agentic Applications 2026** (ASI01–ASI10). Три из топ-4 рисков (ASI02/03/04) — про идентичность, инструменты и делегированное доверие.
+- **Фреймворк-уязвимости**: CVE-2025-55182 (React Server Components RCE, ≥19.2.3), CVE-2025-29927 (Next.js middleware auth bypass, ≥15.2.3/14.2.25), CVE-2025-59536/CVE-2026-21852 (Claude Code config injection и кража API-ключа, ≥2.0.65).
 - **BOLA — уязвимость №1 в API**: 40–62% breach-инцидентов 2026 года, 73% breach начинаются через API, 97% эксплуатируются одним HTTP-запросом.
 - **JWT CVE 2026**: CVE-2026-1114 (weak secret bruteforce), CVE-2026-35039 (fast-jwt cache collision), CVE-2026-33124 (Frigate post-reset persist).
 - **Regulatory deadlines**: EU AI Act вступает в силу 2 августа 2026, CRA conformity assessment — 11 июня 2026, CRA incident reporting — 11 сентября 2026.
-- **Defense evolution**: workload identity вместо static secrets, SBOM → PBOM, Sigstore / SLSA / in-toto, MCP Gateway pattern, dual-LLM и action-selector для prompt injection defense.
+- **Defense evolution**: workload identity вместо static secrets, SBOM → PBOM, Sigstore / SLSA / in-toto (с поправкой на их обход), MCP Gateway pattern, dual-LLM и action-selector для prompt injection defense.
 
-Этот контекст учтён во всех модулях `checks/` — используй его как базовую картину, но при аудите опирайся на свежие данные через web search.
+Этот контекст учтён во всех модулях `checks/` — используй его как базовую картину, но при аудите опирайся на свежие данные через web search (даты/версии быстро устаревают).

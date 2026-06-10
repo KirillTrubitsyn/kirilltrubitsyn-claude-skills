@@ -67,9 +67,11 @@
 ### 8. Фреймворк-специфичное
 
 **Next.js (App Router)**: 
-- `middleware.ts` должен покрывать все защищённые маршруты. Route handlers в `app/api/` могут не наследовать middleware автоматически при некоторых конфигурациях.
+- **Не полагайся на middleware как на единственный слой авторизации.** CVE-2025-29927 (CVSS 9.1) позволял полностью обойти middleware, отправив заголовок `x-middleware-subrequest` — то есть любая проверка auth, жившая только в middleware, обходилась одним заголовком. Фикс в ≥ 15.2.3 / 14.2.25, но архитектурный вывод остаётся: авторизация должна дублироваться на уровне route handler / Server Action / data access, а не только в middleware. Проверь версию Next.js и наличие auth-проверок ниже middleware.
+- `middleware.ts` должен покрывать все защищённые маршруты. Route handlers в `app/api/` могут не наследовать middleware автоматически при некоторых конфигурациях. (В Next.js 16 `middleware.ts` переименован в `proxy.ts` на Node.js runtime — проверь актуальное имя файла.)
 - Server Actions (`"use server"`) требуют проверки auth явно, они вызываются по HTTP и не защищены просто потому что не экспонируют видимый endpoint.
-- Middleware работает на Edge Runtime — не все crypto / bcrypt доступны. Ошибка реализации в middleware часто приводит к fail-open.
+- Middleware на Edge Runtime — не все crypto / bcrypt доступны. Ошибка реализации в middleware часто приводит к fail-open.
+- **React Server Components**: CVE-2025-55182 — unauthenticated RCE в RSC, затрагивает React 19.0.0–19.2.2. Проверь версию react/react-dom; если < 19.2.3 — Critical, немедленный апдейт.
 
 **Supabase**: проверь, что на клиенте — `anon` key, `service_role` — только на сервере. RLS детально — в `database.md`.
 
