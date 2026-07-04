@@ -109,7 +109,7 @@ function handle(a: Action): void {
 
 **Рефакторинг**: Extract Function (для точной копии); Pull Up Method (для дублей в подклассах); Form Template Method (для структурной похожести); Parameterize Function (для похожих функций с магическими значениями).
 
-Инструмент для поиска: `jscpd` (JS/TS/Python/Go), `cpd` (Java), `flake8-duplicate-imports`.
+Инструмент для поиска: `jscpd` (JS/TS/Python/Go и др.), `cpd` (Java), `pylint --disable=all --enable=duplicate-code` (Python).
 
 #### 14. Lazy Class / Freeloader
 
@@ -164,24 +164,24 @@ function handle(a: Action): void {
 ## Как искать в коде
 
 ```bash
-# Длинные функции (примерно, по количеству строк):
-# JS/TS:
-grep -rn "function\|=>" --include="*.{ts,tsx,js,jsx}" -A 100 | awk '/function|=>/{if (count>40) print file":"line": длинная функция"; count=0; file=$0}; {count++}'
-# Универсально — через количество строк в теле:
-find . -name "*.ts" -o -name "*.tsx" | xargs awk 'NF' | sort | uniq -c | sort -rn
+# Длинные функции:
+# JS/TS — через ESLint-правило (заодно и как CI-gate):
+npx eslint . --rule 'max-lines-per-function: ["error", {"max": 50, "skipBlankLines": true}]'
+# Python — функции с рангом сложности C и хуже:
+radon cc -s -n C .
 
-# Дублирование кода:
+# Дублирование кода (jscpd мультиязычный: JS/TS/Python/Go и др.):
 npx jscpd --min-lines 10 --min-tokens 50 ./src
 
 # Длинные списки параметров (TS/JS):
-grep -rnE "function\s+\w+\([^)]{80,}\)" --include="*.{ts,tsx,js,jsx}"
-grep -rnE "\([^)]*,[^)]*,[^)]*,[^)]*,[^)]*,[^)]*\)" --include="*.{ts,tsx,js,jsx}"
+rg -n "function\s+\w+\([^)]{80,}\)" -g '*.{ts,tsx,js,jsx}'
+rg -n "\([^)]*,[^)]*,[^)]*,[^)]*,[^)]*,[^)]*\)" -g '*.{ts,tsx,js,jsx}'
 
 # Boolean-параметры (flag arguments):
-grep -rnE "\(.*: boolean" --include="*.{ts,tsx}"
+rg -n "\(.*: boolean" -g '*.{ts,tsx}'
 
 # Магические числа:
-grep -rnE "\b[0-9]{2,}\b" --include="*.{ts,tsx}" | grep -vE "(test|spec|\.d\.ts|const|enum)"
+rg -n "\b[0-9]{2,}\b" -g '*.{ts,tsx}' | rg -v "(test|spec|\.d\.ts|const|enum)"
 
 # Dead code (JS/TS):
 npx knip
@@ -189,6 +189,8 @@ npx knip
 # Цикломатическая сложность:
 npx eslint . --rule 'complexity: ["error", 10]'
 ```
+
+Замечание: для поиска по коду используй `rg` (ripgrep) — его глобы `-g '*.{ts,tsx}'` поддерживают фигурные скобки. В `grep --include="*.{ts,tsx}"` скобки в кавычках НЕ раскрываются, и такая команда молча не находит ничего.
 
 ## Пороги метрик
 

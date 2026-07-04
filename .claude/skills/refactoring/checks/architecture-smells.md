@@ -137,7 +137,7 @@ class Order {
 
 Микрофронтенды — это про независимый deployment разных команд. Если команда одна — это overengineering.
 
-**Рефакторинг**: модульный монолит. Раздели код по доменам, но разворачивай единым бандлом. Мигрируй к микрофронтендам только когда есть реальная мотивация: разные циклы релиза, разные технологии, команды с разным ritm'ом.
+**Рефакторинг**: модульный монолит. Раздели код по доменам, но разворачивай единым бандлом. Мигрируй к микрофронтендам только когда есть реальная мотивация: разные циклы релиза, разные технологии, команды с разным ритмом.
 
 ### 10. Отсутствие DI / сложность тестирования
 
@@ -195,7 +195,7 @@ npx depcruise --config .dependency-cruiser.cjs src | less
 find src -type d -exec sh -c 'echo $(find "$1" -type f | wc -l) "$1"' _ {} \; | sort -rn | head -20
 
 # Какие файлы импортируются отовсюду (god modules)
-grep -rhoE "from ['\"]([^'\"]+)['\"]" --include="*.{ts,tsx}" src/ | sort | uniq -c | sort -rn | head -30
+rg -oIN "from ['\"][^'\"]+['\"]" -g '*.{ts,tsx}' src/ | sort | uniq -c | sort -rn | head -30
 
 # Глубина nested-папок (признак over-structure)
 find src -type d | awk -F/ '{print NF-1}' | sort -n | uniq -c
@@ -203,7 +203,7 @@ find src -type d | awk -F/ '{print NF-1}' | sort -n | uniq -c
 # Статистика импортов по feature (cross-feature coupling)
 for dir in src/features/*; do
   echo "=== $dir ==="
-  grep -rn "from ['\"]@?/features/" "$dir" | grep -v "$(basename $dir)" | wc -l
+  rg -n "from ['\"]@?/features/" "$dir" | rg -v "$(basename $dir)" | wc -l
 done
 ```
 

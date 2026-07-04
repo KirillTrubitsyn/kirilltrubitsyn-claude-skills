@@ -64,7 +64,7 @@ done < /tmp/churn.txt | sort -rn | head -20
 
 ### Способ 3. CodeScene
 
-Профессиональный инструмент Тhorhill'а. Считает:
+Профессиональный инструмент Торнхилла. Считает:
 
 - **Code Health** (1-10): композитная метрика из cyclomatic, cognitive, nesting, arg count, length.
 - **Change frequency**.

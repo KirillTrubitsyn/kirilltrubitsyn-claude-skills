@@ -159,19 +159,7 @@ const [email, setEmail] = useState("");
 
 ### 12. Серверное состояние в `useState` + `useEffect(fetch)`
 
-```tsx
-// Smell
-const [data, setData] = useState(null);
-const [loading, setLoading] = useState(true);
-const [error, setError] = useState(null);
-useEffect(() => {
-  fetch("/api/items").then(...).catch(...);
-}, []);
-```
-
-Это переизобретает кэширование, invalidation, retry, deduplication.
-
-**Рефакторинг**: TanStack Query (React Query), SWR. Для Next.js App Router — серверные компоненты с нативным fetch + React `cache()`. См. также модуль `nextjs-smells.md`.
+Маркер: связка `useState(null)` + `useState(loading)` + `useEffect(() => fetch...)` — переизобретение кэширования, invalidation, retry и dedup. Каноничный разбор с признаками и рефакторингом (TanStack Query / SWR, для App Router — RSC) — в `state-smells.md`, пункт 1; для Next.js-специфики — `nextjs-smells.md`, пункт 3.
 
 ### 13. Неконтролируемый vs контролируемый input — микс
 
@@ -241,26 +229,25 @@ const value = useMemo(() => ({ user, login, logout }), [user]);
 
 ```bash
 # useEffect для синхронизации state (подозрительно)
-grep -rn "useEffect" --include="*.{tsx,jsx}" -A 5 | grep -B 2 "setState\|set[A-Z]"
+rg -n -A 5 "useEffect" -g '*.{tsx,jsx}' | rg -B 2 "setState|set[A-Z]"
 
 # inline-объекты в JSX (подозрительно при memoized children)
-grep -rnE "=\s*\{\s*\{" --include="*.{tsx,jsx}"
+rg -n "=\s*\{\s*\{" -g '*.{tsx,jsx}'
 
 # key={index}
-grep -rnE "key=\{.*index\}" --include="*.{tsx,jsx}"
-grep -rnE "key=\{i\}" --include="*.{tsx,jsx}"
+rg -n "key=\{.*index\}|key=\{i\}" -g '*.{tsx,jsx}'
 
-# массовое использование useState (форма-smell)
-grep -rn "useState" --include="*.{tsx,jsx}" | awk -F: '{print $1}' | sort | uniq -c | sort -rn | head
+# массовое использование useState (форма-smell): счётчик по файлам
+rg -c "useState" -g '*.{tsx,jsx}' | sort -t: -k2 -rn | head
 
 # Эффект + fetch (server state в client state)
-grep -rn "useEffect" --include="*.{tsx,jsx}" -A 5 | grep "fetch\|axios\|api\."
+rg -n -A 5 "useEffect" -g '*.{tsx,jsx}' | rg "fetch\(|axios|api\."
 
 # Огромные компоненты по числу строк
 find src -name "*.tsx" -exec wc -l {} \; | sort -rn | head -20
 
 # Отсутствие exhaustive-deps ESLint-правила
-grep -rn "react-hooks/exhaustive-deps" .eslintrc.* biome.json eslint.config.*
+rg -n "react-hooks/exhaustive-deps" .eslintrc.* biome.json eslint.config.* 2>/dev/null
 ```
 
 ## На что обращать внимание дополнительно

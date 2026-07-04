@@ -158,23 +158,23 @@ const filtered = useMemo(() => items.filter(...), [items]);
 
 ```bash
 # Локальный fetch в useEffect (server state в client state)
-grep -rn "useEffect" --include="*.{tsx,jsx}" -A 10 | grep -B 3 "fetch(\|axios\|api\."
+rg -n -A 10 "useEffect" -g '*.{tsx,jsx}' | rg -B 3 "fetch\(|axios|api\."
 
 # Количество useState в одном файле (форма-smell)
-grep -rn "useState" --include="*.{tsx,jsx}" | awk -F: '{print $1}' | sort | uniq -c | sort -rn | head
+rg -c "useState" -g '*.{tsx,jsx}' | sort -t: -k2 -rn | head
 
 # Context без useMemo на value
-grep -rn "Provider value=" --include="*.{tsx,jsx}" | grep -v "useMemo\|useRef"
+rg -n "Provider value=" -g '*.{tsx,jsx}' | rg -v "useMemo|useRef"
 
 # Redux без Toolkit
-grep -rn "createStore\|combineReducers" --include="*.{ts,tsx,js,jsx}"
-grep -rn "@reduxjs/toolkit" package.json
+rg -n "createStore|combineReducers" -g '*.{ts,tsx,js,jsx}'
+rg -n "@reduxjs/toolkit" package.json
 
-# Мутации массивов в setState
-grep -rnE "\.(push|pop|shift|unshift|splice|sort|reverse)\(" --include="*.{ts,tsx}" | grep -B 2 "set[A-Z]"
+# Мутации массивов рядом с setState (эвристика)
+rg -n -B 2 "\.(push|pop|shift|unshift|splice|sort|reverse)\(" -g '*.{ts,tsx}' | rg "set[A-Z]"
 
 # Глобальные singleton-классы
-grep -rn "static instance" --include="*.{ts,tsx}"
+rg -n "static instance" -g '*.{ts,tsx}'
 ```
 
 ## Таблица выбора инструмента

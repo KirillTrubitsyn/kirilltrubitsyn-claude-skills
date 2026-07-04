@@ -61,7 +61,7 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
 
 - **Fetch в клиентском компоненте для начальной загрузки**: вместо RSC запрашиваем данные на клиенте после гидратации → мигающий UI, лишний JS.
 
-  **Рефакторинг**: перенеси data fetching в серверный компонент, передавай данные как пропс. Клиентское состояние — только для interactive updates.
+  **Рефакторинг**: перенеси data fetching в серверный компонент, передавай данные как пропс. Клиентское состояние — только для interactive updates. Общий разбор антипаттерна «server state в client state» — `state-smells.md`, пункт 1.
 
 ### 4. Неявное или устаревшее кэширование
 
@@ -174,7 +174,7 @@ done
 grep -rln '"use client"' app/**/layout.tsx
 
 # fetch с неявной политикой кэширования
-grep -rn "fetch(" --include="*.{ts,tsx}" app/ | grep -v "cache:\|revalidate:\|next:"
+rg -n "fetch\(" -g '*.{ts,tsx}' app/ | rg -v "cache:|revalidate:|next:"
 
 # Server-only API в клиентских компонентах
 for f in $(grep -rln '"use client"' app/ components/); do
@@ -182,7 +182,7 @@ for f in $(grep -rln '"use client"' app/ components/); do
 done
 
 # Несериализуемое в пропсах (эвристика)
-grep -rnE "<[A-Z][a-zA-Z]*\s+[a-zA-Z]+=\{.*function|<[A-Z][a-zA-Z]*\s+[a-zA-Z]+=\{.*new Date" --include="*.{tsx}"
+rg -n "<[A-Z][a-zA-Z]*\s+[a-zA-Z]+=\{.*function|<[A-Z][a-zA-Z]*\s+[a-zA-Z]+=\{.*new Date" -g '*.tsx'
 
 # Отсутствие error.tsx и loading.tsx по сегментам
 find app -type d -mindepth 1 | while read d; do
