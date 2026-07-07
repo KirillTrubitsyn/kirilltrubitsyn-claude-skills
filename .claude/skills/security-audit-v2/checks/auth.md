@@ -71,7 +71,7 @@
 - `middleware.ts` должен покрывать все защищённые маршруты. Route handlers в `app/api/` могут не наследовать middleware автоматически при некоторых конфигурациях. (В Next.js 16 `middleware.ts` переименован в `proxy.ts` на Node.js runtime — проверь актуальное имя файла.)
 - Server Actions (`"use server"`) требуют проверки auth явно, они вызываются по HTTP и не защищены просто потому что не экспонируют видимый endpoint.
 - Middleware на Edge Runtime — не все crypto / bcrypt доступны. Ошибка реализации в middleware часто приводит к fail-open.
-- **React Server Components**: CVE-2025-55182 — unauthenticated RCE в RSC, затрагивает React 19.0.0–19.2.2. Проверь версию react/react-dom; если < 19.2.3 — Critical, немедленный апдейт.
+- **React Server Components**: CVE-2025-55182 («React2Shell», CVSS 10.0) — unauthenticated RCE в RSC через десериализацию Server Functions. Уязвимы 19.0, 19.1.0, 19.1.1, 19.2.0; фикс — в 19.0.1 / 19.1.2 / 19.2.1 (одной «≥ 19.2.3» не существует — каждая minor-линия пропатчена отдельно). Проверь точную версию react / react-dom по lockfile и сверься с advisory перед выводом. Уязвимая версия — Critical, немедленный апдейт. Связанная цепочка в Next.js — CVE-2025-66478 (проверь актуальный статус).
 
 **Supabase**: проверь, что на клиенте — `anon` key, `service_role` — только на сервере. RLS детально — в `database.md`.
 

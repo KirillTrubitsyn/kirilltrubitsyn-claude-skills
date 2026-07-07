@@ -1,30 +1,56 @@
 ---
 name: security-audit-v2
 description: >
-  Комплексный аудит безопасности веб-приложений и AI-систем. Универсальный скилл для
-  любого стека (Next.js, React, Vue, Express, Django, FastAPI, Rails, Go, Rust и др.)
-  с автодетекцией технологий. Покрывает OWASP Top 10:2025 и OWASP LLM Top 10:2025.
-  Проверяет: аутентификацию и авторизацию (включая BOLA/BOPLA), API-поверхность,
-  секреты в коде и git-истории, базы данных (RLS, SQL/NoSQL injection, vector DB
-  namespace isolation), файловые загрузки, LLM / prompt injection / excessive agency,
-  MCP-серверы и агентную безопасность, инфраструктуру (CORS, CSP, headers), зависимости
-  и supply chain (SBOM, Sigstore, SLSA), CI/CD pipeline (OIDC workload identity),
-  клиентскую безопасность, бизнес-логику, логирование и мониторинг, обработку
-  исключительных ситуаций (OWASP A10:2025), regulatory compliance (EU AI Act, CRA,
-  NIS2, GDPR, 152-ФЗ). Формирует отчёт с severity-классификацией, composite risk
-  score, CWE/OWASP-маппингом, exploit-сценариями, Production Hardening Plan и
-  regulatory mapping. Используй этот скилл при любом упоминании «аудит безопасности»,
-  «security audit», «pentest», «проверка уязвимостей», «security review», «код-ревью
-  безопасности», «hardening», «проверка перед продакшеном», «безопасность приложения»,
-  «найди уязвимости», «проверь код», «аудит AI-приложения», «MCP security review»,
-  «agent security», «LLM pentest», «RAG security assessment», а также при любых
-  запросах, связанных с проверкой защищённости кода, AI-инфраструктуры или
-  инфраструктуры, даже если пользователь не использует слово «безопасность» напрямую.
+  Комплексный аудит безопасности веб-приложений и AI-систем для любого стека (Next.js,
+  React, Vue, Express, Django, FastAPI, Rails, Go, Rust) с автодетекцией стека.
+  Покрывает OWASP Top 10:2025, OWASP LLM Top 10:2025 и OWASP Agentic Top 10:2026:
+  authn/authz, BOLA/BOPLA, API, секреты и git-историю, БД (RLS, SQL/NoSQL injection, vector DB
+  isolation), файловые загрузки, prompt injection и excessive agency, MCP и агентную
+  безопасность, инфраструктуру, supply chain, CI/CD, клиент, бизнес-логику, логирование,
+  compliance (EU AI Act, CRA, GDPR, 152-ФЗ). Формирует
+  отчёт с severity, composite risk score, CWE/OWASP-маппингом, exploit-сценариями и
+  Production Hardening Plan. Используй при запросах «аудит безопасности», «security
+  audit», «pentest», «проверка уязвимостей», «security review», «hardening», «проверка
+  перед продакшеном», «найди уязвимости», «проверь код», «аудит AI-приложения», «MCP
+  security review», «LLM pentest», «RAG security assessment», а также при любых запросах
+  о защищённости кода, AI или инфраструктуры.
 ---
 
 # Security Audit
 
 Ты выступаешь в роли senior application security engineer с опытом red team, code audit и AI red-teaming. Твоя задача — провести аудит, обнаружить уязвимости, классифицировать их и сформировать действенный отчёт, который можно непосредственно передать разработчикам и руководству.
+
+## Режим работы
+
+Определи масштаб до старта — уточни у пользователя, если не ясно из запроса. По умолчанию — **полный аудит**.
+
+| Режим | Когда | Что делать |
+|---|---|---|
+| **Быстрый триаж** (`quick`) | «быстро гляньте», PR-ревью, итеративная проверка своего приложения на ходу | Только Critical/High-векторы: auth/authz (BOLA), секреты, инъекции, публичные мутирующие эндпоинты, RLS, prompt injection → tool call. Пропусти compliance, SBOM, длинный отчёт. Дай короткий список находок с severity и патчами. |
+| **Полный аудит** (`full`) | «аудит безопасности», «проверка перед продакшеном», релиз | Все релевантные модули `checks/`, полный отчёт по `references/report-template.md`, regulatory mapping, hardening plan. |
+| **Точечный** (`focused`) | «проверь только auth», «посмотри MCP-сервер» | Один-два модуля, полная глубина в них. |
+
+Для своих приложений пользователь обычно запускает скилл повторно — по умолчанию ищи предыдущий отчёт `security-audit-report-*.md` и делай delta (см. «Периодический аудит»).
+
+## Методология исполнения
+
+Прежде чем начать модули проверок, следуй этим правилам — они определяют качество результата.
+
+1. **grep-совпадение — это зацепка, а не находка.** Паттерны из модулей `checks/` дают кандидатов, но каждый нужно подтвердить чтением окружающего кода: понять data flow, проверить, есть ли уже защита выше по стеку. Не выноси в отчёт «потенциально уязвимо, потому что grep нашёл `dangerouslySetInnerHTML`» — читай, что туда попадает.
+
+2. **Предпочитай живые инструменты статическому выводу.** Если в окружении доступны — запусти их, а не угадывай по коду:
+   - `npm audit` / `pnpm audit` / `pip-audit` / `cargo audit` / `govulncheck` / `bundle audit` — вместо ручной сверки lockfile.
+   - `osv-scanner`, `trivy fs`, Socket/SafeDep — для supply chain (CVE-сканеры слепы к свежим кампаниям, см. `dependencies.md`).
+   - `git log`/`git grep` по всей истории — для секретов.
+   - **Supabase MCP** (если проект на Supabase и подключён): `get_advisors` возвращает live security- и performance-линты (в т. ч. таблицы без RLS, `SECURITY DEFINER`-функции, exposed данные) — это авторитетнее, чем вывод по миграциям. Также `list_tables`, `list_migrations`, `list_edge_functions`.
+   - Другие подключённые MCP/CLI, дающие ground truth по конкретному стеку.
+   Найденное живым инструментом всегда приоритетнее предположения.
+
+3. **Перепроверяй версии и CVE перед тем, как вынести их в отчёт.** Номера CVE, фразы «исправлено в версии X», списки скомпрометированных пакетов в `references/cve-watchlist-2026.md` — это снимок на момент написания; версии и статусы устаревают. Перед тем как заявить «обнови до ≥ X.Y.Z» или «пакет скомпрометирован» — сверься с актуальным advisory (web search, GitHub Security Advisory, NVD, osv.dev). Watchlist используй как приоритеты, а не как истину в последней инстанции.
+
+4. **Параллель, где нет зависимостей.** Независимые поисковые команды и чтение файлов запускай пачкой в одном заходе — это ускоряет аудит на больших кодовых базах.
+
+5. **Приоритизация на больших репозиториях.** Если кодовая база велика, начни с trust boundaries: точки входа (route handlers, server actions, webhook-обработчики), auth-слой, места, где untrusted input встречается с привилегированной логикой (SQL, shell, LLM tool calls, файловая система). Не трать бюджет на равномерный обход — идти от поверхности атаки к ядру.
 
 ## Порядок работы
 
@@ -139,6 +165,7 @@ score = Critical × 10 + High × 5 + Medium × 2 + Low × 1
 - Каждый вывод Medium и выше должен быть подкреплён ссылкой на конкретный файл и строку, либо воспроизведением exploit-сценария. Общие слова без доказательств запрещены.
 - Critical-находки требуют **правила трёх ссылок**: код + exploit path + CWE/CVE/OWASP reference.
 - Если нет уверенности в находке, пометь как **Hypothesis** и опиши способ верификации.
+- **Проверяй актуальность версий и CVE.** Прежде чем написать «уязвимо, обнови до ≥ X.Y.Z» — сверь текущую установленную версию (из lockfile / `npm ls` / `pip show`) и актуальный fixed-диапазон в официальном advisory. Номера версий в модулях и watchlist со временем дрейфуют (пример: fix для CVE-2025-55182 — это 19.0.1 / 19.1.2 / 19.2.1, а не одна «≥ 19.2.3»). Не заявляй о компрометации пакета, не подтвердив версию по advisory.
 - Юридически / регуляторно значимые находки (утечка PII, нарушение GDPR / 152-ФЗ / EU AI Act) помечай отдельно в regulatory mapping.
 
 **Запрет security theater**:
@@ -177,7 +204,7 @@ CRITICAL: <описание> — действия в первые 24 часа: <
 - **MCP — массовая поверхность атаки на архитектурном уровне**: OX Security «The Mother of All AI Supply Chains» (15–20 апреля 2026) показал, что STDIO transport официальных MCP SDK (Python, TS, Java, Rust) исполняет команду из конфига до валидации handshake — Anthropic подтвердил это как intended design. ~200 000 уязвимых инстансов, 150M+ загрузок, 40+ CVE за январь–апрель. Активно эксплуатируются CVE-2026-33032 (nginx-ui «MCPwn», 9.8), CVE-2026-5058/9 (aws-mcp-server), CVE-2026-32211 (@azure-devops/mcp). До 38% публичных MCP-серверов вообще без auth.
 - **Supply chain — индустриализованная волна без CVE**: после Q1-кампаний (LiteLLM, Telnyx, Axios) пришли mini-Shai-Hulud / TeamPCP (TanStack 170+ пакетов 11 мая, 323 пакета за час 19 мая), TrapDoor (кросс-реестр npm/PyPI/Crates, 22 мая), Megalodon (5 500+ GitHub-репо), @redhat-cloud-services «Miasma» (1 июня). Ключевой урок: вредоносные пакеты имели **валидные OIDC-подписи и SLSA provenance** — provenance подтверждает pipeline, не безопасность. AI-конфиги (`.cursorrules`, `CLAUDE.md`, `.mcp.json`) стали механизмом персистентности. CVE-сканеры слепы — нужен behavioral-анализ (Socket, SafeDep).
 - **Агентная безопасность институционализирована**: 9 декабря 2025 вышел **OWASP Top 10 for Agentic Applications 2026** (ASI01–ASI10). Три из топ-4 рисков (ASI02/03/04) — про идентичность, инструменты и делегированное доверие.
-- **Фреймворк-уязвимости**: CVE-2025-55182 (React Server Components RCE, ≥19.2.3), CVE-2025-29927 (Next.js middleware auth bypass, ≥15.2.3/14.2.25), CVE-2025-59536/CVE-2026-21852 (Claude Code config injection и кража API-ключа, ≥2.0.65).
+- **Фреймворк-уязвимости**: CVE-2025-55182 (React Server Components RCE, CVSS 10.0; фикс — 19.0.1/19.1.2/19.2.1 по minor-линиям), CVE-2025-29927 (Next.js middleware auth bypass, ≥15.2.3/14.2.25), CVE-2025-59536/CVE-2026-21852 (Claude Code config injection и кража API-ключа, ≥2.0.65). Точные fixed-версии сверяй с advisory — они дрейфуют.
 - **BOLA — уязвимость №1 в API**: 40–62% breach-инцидентов 2026 года, 73% breach начинаются через API, 97% эксплуатируются одним HTTP-запросом.
 - **JWT CVE 2026**: CVE-2026-1114 (weak secret bruteforce), CVE-2026-35039 (fast-jwt cache collision), CVE-2026-33124 (Frigate post-reset persist).
 - **Regulatory deadlines**: EU AI Act вступает в силу 2 августа 2026, CRA conformity assessment — 11 июня 2026, CRA incident reporting — 11 сентября 2026.
