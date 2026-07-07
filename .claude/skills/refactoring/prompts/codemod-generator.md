@@ -23,7 +23,7 @@ Codemod НЕ уместен, если:
 | Инструмент | Когда | Сильные стороны |
 |---|---|---|
 | **ast-grep** | Декларативные правила, большинство случаев | YAML-конфиг, быстрый, мультиязычный, простой |
-| **ts-morph** | Сложные трансформации с переименованиями через весь проект | Богатый TypeScript API, учитывает typechecker |
+| **ts-morph** | Сложные трансформации с переименованиями через весь проект | Богатый TypeScript API, учитывает typechecker. Зависит от программного API TS: до стабилизации API в TS 7.1 на проекте с TS 7 держи TS 6 рядом (`npm i -D typescript@npm:@typescript/typescript6`) |
 | **jscodeshift** | Классические JS/React-миграции | Огромная экосистема готовых transforms |
 | **comby** | Структурная замена с match-patterns, мультиязык | Простой синтаксис, работает вне специфики языка |
 | **OpenRewrite** | Java/Kotlin/XML/YAML | Recipe-based, отличная поддержка enterprise-проектов |
@@ -188,7 +188,7 @@ npx react-codemod class-to-function src/
 ## Порядок безопасного применения
 
 1. Прогон в отдельной ветке: `git checkout -b codemod/migrate-store-imports`.
-2. Dry-run. Прочитай полный diff. Особенно внимательно — первые 10-20 файлов.
+2. Dry-run. Прочитай полный diff; структурный diff (`difft` / difftastic) делает механические изменения нагляднее обычного построчного. Особенно внимательно — первые 10-20 файлов.
 3. Full run. Коммит: `refactor: mechanical migration via ast-grep` с ссылкой на правило.
 4. `pnpm tsc --noEmit` → должно быть зелёное.
 5. Прогон всех тестов.

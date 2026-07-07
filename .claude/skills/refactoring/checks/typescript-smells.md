@@ -1,12 +1,12 @@
 # TypeScript smells
 
-## Контекст версий (2026)
+## Контекст версий (июль 2026)
 
-- **TypeScript 6.0** — последний релиз на старой JS-кодовой базе («Strada»); в нём изменены дефолты (`strict: true` по умолчанию) и объявлены deprecations под 7.0.
-- **TypeScript 7.0** («Corsa», порт компилятора на Go, бинарь `tsgo`) — в 5–10 раз быстрее `tsc`; доступен как `@typescript/native-preview`, стабильный релиз выйдет под пакетом `typescript`. Type-checking идентичен 6.0. Удаляет target ES5, AMD/UMD/SystemJS, classic node resolution.
+- **TypeScript 6.0** (март 2026) — последний релиз на старой JS-кодовой базе («Strada») и transition-релиз перед 7.0. Новые дефолты: `strict: true`, `module: "esnext"`, плавающий `target` (сейчас es2025). Удалены: `target: es5`, `moduleResolution: classic`, `downlevelIteration`, `module: amd/umd/system`. Deprecated-флаги можно временно глушить `"ignoreDeprecations": "6.0"`, но в 7.0 они становятся жёсткими ошибками — при апгрейде чисти их сразу.
+- **TypeScript 7.0** («Corsa», порт компилятора на Go) — RC с 18 июня 2026, стабильный релиз ожидается в ближайший месяц. Ставится как `npm i -D typescript@rc`; бинарь — обычный `tsc` (отдельный `tsgo` остался только в nightly-пакете `@typescript/native-preview`). В 5–10 раз быстрее 6.0 при идентичном type-checking. Важно для инструментов рефакторинга: стабильный программный API появится только в 7.1 — typescript-eslint, ts-morph и кастомные трансформеры до тех пор работают через TS 6 (side-by-side через npm alias: `npm i -D typescript@npm:@typescript/typescript6`).
 - **Node.js исполняет TypeScript нативно** (type stripping, стабильно с Node 22.18+/24.12+): работает только «erasable»-синтаксис — без `enum`, `namespace` с runtime-кодом и parameter properties. Флаг `--erasableSyntaxOnly` (TS 5.8+) проверяет это на этапе компиляции.
 
-Это влияет на рекомендации ниже: enum → `as const`, и медленный `tsc` теперь лечится не только упрощением типов, но и переходом на `tsgo`.
+Это влияет на рекомендации ниже: enum → `as const`, и медленный `tsc` теперь лечится не только упрощением типов, но и апгрейдом на 7.0.
 
 ## Что проверять
 
@@ -171,7 +171,7 @@ function assertDefined<T>(v: T | null | undefined, msg = "defined"): asserts v i
 - Измерь: `tsc --noEmit --extendedDiagnostics` показывает, какие типы тормозят компиляцию.
 - Упрости сложные условные типы до конкретных (менее гибко, но быстрее).
 - Разбей один огромный тип на несколько именованных.
-- Если узкое место — сам компилятор, а не типы: прогони проект через `tsgo` (`npm i -D @typescript/native-preview`, затем `npx tsgo --noEmit`) — 5–10x ускорение при идентичном type-checking. Это не отменяет упрощение патологических типов, но снимает боль на больших кодовых базах.
+- Если узкое место — сам компилятор, а не типы: переходи на TypeScript 7 (`npm i -D typescript@rc`, дальше обычный `tsc --noEmit`) — 5–10x ускорение при идентичном type-checking. Это не отменяет упрощение патологических типов, но снимает боль на больших кодовых базах. Учти: тулинг, зависящий от программного API TS (typescript-eslint, ts-morph), до релиза 7.1 держи на TS 6 через npm alias.
 
 ### 12. Missing `readonly`
 
@@ -257,8 +257,9 @@ grep -rnE ":\s*any\b|<any>|as any" --include="*.ts" --include="*.tsx" | wc -l
 # Type assertions
 grep -rnE "\bas\s+[A-Z][a-zA-Z]*" --include="*.ts" --include="*.tsx" | grep -v "as const" | wc -l
 
-# Non-null assertions
-grep -rnE "!\.\s|!\[" --include="*.ts" --include="*.tsx" | wc -l
+# Non-null assertions (эвристика: `x!.y`, `x![i]`, `foo()!.bar`; не ловит `f(x!)`.
+# Точный подсчёт — правило @typescript-eslint/no-non-null-assertion)
+rg -n '[\w)\]]!(\.|\[)' -g '*.{ts,tsx}' | wc -l
 
 # Enum использования (посчитать; миграция на const assertion)
 grep -rn "^enum\|^export enum\|^const enum\|^export const enum" --include="*.ts"
@@ -297,6 +298,8 @@ npx knip   # ts-prune заморожен, его автор рекомендуе
 ```
 
 `erasableSyntaxOnly` включай, если проект не завязан на enum-интероп (Prisma и другой generated code) — иначе сначала миграция enum → `as const`.
+
+На TypeScript 6.0+ `strict` включён по умолчанию, но явная запись в конфиге всё равно полезна: она защищает от случайного даунгрейда и работает одинаково на 5.x и 6.x.
 
 Включение strict-настроек на большой кодовой базе делай поэтапно:
 

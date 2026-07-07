@@ -86,11 +86,18 @@ npx git-hotspots --since "6 months ago" --extensions ts,tsx
 Отдельная ценная метрика: файлы, которые всегда меняются вместе, хотя формально не связаны.
 
 ```bash
-# Упрощённо: найди коммиты, где 2+ файла меняются вместе
-git log --pretty=format:"COMMIT %H" --name-only \
-  | awk '/^COMMIT/ {commit=$2; next} $0 {files[$0]=files[$0]" "commit}' \
-  | ...
+# Пары файлов, часто меняющихся в одних коммитах.
+# Окно 2–10 файлов на коммит отсекает массовые механические правки (format, codemod).
+git log --since="1 year ago" --pretty=format:"__C__" --name-only -- '*.ts' '*.tsx' '*.py' |
+awk 'BEGIN{RS="__C__"} NF{
+  n=split($0,f,"\n"); c=0; delete a;
+  for(i=1;i<=n;i++) if (f[i]!="") a[++c]=f[i];
+  if (c>=2 && c<=10) for(i=1;i<c;i++) for(j=i+1;j<=c;j++)
+    print (a[i]<a[j] ? a[i]" :: "a[j] : a[j]" :: "a[i])
+}' | sort | uniq -c | sort -rn | head -20
 ```
+
+Для серьёзного анализа — `code-maat` (инструмент Торнхилла: coupling, ownership, age) или CodeScene.
 
 Temporal coupling без explicit import — смысловая связь, потерянная в коде. Часто это feature, размазанная по слоям.
 

@@ -4,7 +4,7 @@
 
 Набор smells, специфичных именно для Next.js с App Router (`app/`). Правила актуальны для Next.js 15/16. Для Pages Router (`pages/`) многие пункты неприменимы.
 
-Сначала определи версию по `package.json` — между 15 и 16 принципиально изменилась модель кэширования (Cache Components) и появился `proxy.ts` вместо `middleware.ts`. Next.js 16 требует Node.js 20.9+, а Turbopack стал дефолтным бандлером.
+Сначала определи версию по `package.json` — между 15 и 16 принципиально изменилась модель кэширования (Cache Components) и появился `proxy.ts` вместо `middleware.ts`. Next.js 16 требует Node.js 20.9+, а Turbopack стал дефолтным бандлером. Актуальная линия — 16.x (16.2, март 2026: ускоренный dev-старт, логирование server functions; 16.3, июнь 2026: persistent cache для билдов, Rust-порт React Compiler в Turbopack) — минорные релизы модель кэширования 16 не меняют.
 
 ### 1. Избыточное использование `"use client"`
 
@@ -170,8 +170,8 @@ grep -rln '"use client"' app/ components/ | while read f; do
   fi
 done
 
-# "use client" в layout
-grep -rln '"use client"' app/**/layout.tsx
+# "use client" в layout (find вместо glob — `**` работает не во всех шеллах)
+find app -name "layout.tsx" -exec grep -l '"use client"' {} +
 
 # fetch с неявной политикой кэширования
 rg -n "fetch\(" -g '*.{ts,tsx}' app/ | rg -v "cache:|revalidate:|next:"
