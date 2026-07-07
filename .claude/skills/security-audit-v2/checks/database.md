@@ -1,8 +1,12 @@
 # База данных
 
+> **Живые инструменты приоритетнее статики.** Если проект на Supabase и подключён Supabase MCP — запусти `get_advisors` (type `security` и `performance`): это официальные линты Supabase, которые находят таблицы без RLS, `SECURITY DEFINER`-вьюхи, функции с mutable `search_path`, exposed `auth`-данные и т. д. напрямую в живой БД. Это авторитетнее, чем разбор миграций. Дополни картину через `list_tables`, `list_migrations`, `list_extensions`, `list_edge_functions`. Для собственного Postgres — выполни SQL-запросы ниже. Всегда предпочитай ground truth из живой БД предположениям по коду.
+
 ## Что проверять
 
 ### 1. Row Level Security (Supabase / PostgreSQL)
+
+Если доступен Supabase MCP — начни с `get_advisors({ type: "security" })`; каждую находку advisor'а подтверди и внеси в отчёт со ссылкой на таблицу/политику. Затем дополни ручной проверкой:
 
 - Включён ли RLS на всех таблицах? Таблица без RLS доступна любому с `anon` key.
 - Для каждой таблицы с RLS: какие политики применяются? Достаточно ли они restrictive?
