@@ -42,7 +42,7 @@ description: >
 | `package.json` | Node-экосистема; смотри `dependencies` на фреймворк (next, react, vue, express, nest, remix, astro) |
 | `next.config.*`, `app/`, `pages/` | Next.js. Определи App Router vs Pages Router. Версия 16+: `cacheComponents`, `proxy.ts` вместо `middleware.ts`, Turbopack по умолчанию |
 | `tsconfig.json` | TypeScript. Проверь `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `erasableSyntaxOnly` |
-| `biome.json(c)`, `eslint.config.*`, `.eslintrc.*`, `.oxlintrc.json` | Линтинг. ESLint 9+ — flat config; Biome 2+ и oxlint умеют type-aware правила |
+| `biome.json(c)`, `eslint.config.*`, `.eslintrc.*`, `.oxlintrc.json` | Линтинг. ESLint 9/10 — flat config (`.eslintrc.*` — легаси; ESLint 9.x EOL — август 2026); Biome 2.3+ и oxlint умеют type-aware правила |
 | `babel-plugin-react-compiler`, `reactCompiler` в next.config | React Compiler включён — влияет на рекомендации по мемоизации |
 | `vitest.config.*`, `jest.config.*`, `playwright.config.*` | Тесты |
 | `requirements.txt`, `pyproject.toml` | Python. Смотри на django/flask/fastapi |
@@ -56,7 +56,7 @@ description: >
 - **Покрытие тестами**: прогоняется ли `npm test` без ошибок? Есть ли `coverage`-отчёт?
 - **Статус CI**: есть ли `.github/workflows/`, как выглядят pipeline gates?
 - **Статический анализ**: настроены ли strict-правила TS, Biome, SonarCloud? Есть ли type-aware линтинг (typescript-eslint, Biome 2 Biotype, oxlint + tsgolint)?
-- **Версии ключевых зависимостей**: React, Next.js, TypeScript — рекомендации в модулях `checks/` зависят от версии. Отдельно: React < 19.2.3 с RSC — уязвим (CVE-2025-55182), это блокирующий фикс до любого рефакторинга.
+- **Версии ключевых зависимостей**: React, Next.js, TypeScript — рекомендации в модулях `checks/` зависят от версии. Отдельно: при RSC пакеты `react-server-dom-*` ниже 19.0.4 / 19.1.5 / 19.2.4 уязвимы (React2Shell RCE CVE-2025-55182 + follow-up DoS/source-exposure CVE, включая версии до 19.2.3 включительно) — это блокирующий фикс до любого рефакторинга.
 - **Git-история**: команда работает trunk-based или через long-lived ветки?
 
 Запиши обнаруженный стек в начало отчёта. Без этого следующие шаги бессмысленны.
