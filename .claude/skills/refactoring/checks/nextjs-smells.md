@@ -2,7 +2,7 @@
 
 ## Что проверять
 
-Набор smells, специфичных именно для Next.js с App Router (`app/`). Правила актуальны для Next.js 15/16. Для Pages Router (`pages/`) многие пункты неприменимы.
+Набор smells, специфичных именно для Next.js с App Router (`app/`). Правила актуальны для Next.js 15/16 (проверено 2026-08; дефолты кэширования меняются в каждом мажоре — сверяйся с блогом релиза). Для Pages Router (`pages/`) многие пункты неприменимы.
 
 Сначала определи версию по `package.json` — между 15 и 16 принципиально изменилась модель кэширования (Cache Components) и появился `proxy.ts` вместо `middleware.ts`. Next.js 16 требует Node.js 20.9+, а Turbopack стал дефолтным бандлером. Актуальная линия — 16.x (16.2, март 2026: ускоренный dev-старт, логирование server functions; 16.3, июнь 2026: persistent cache для билдов, Rust-порт React Compiler в Turbopack) — минорные релизы модель кэширования 16 не меняют.
 
@@ -42,7 +42,7 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
 
 **Признаки**:
 
-- Несериализуемые объекты (функции, классы, Date в старых версиях) передаются как пропсы из server в client component.
+- Несериализуемые объекты передаются как пропсы из server в client component: функции (кроме Server Functions), экземпляры пользовательских классов, незарегистрированные символы. ВАЖНО: `Date`, `Map`, `Set`, `TypedArray`/`ArrayBuffer` и `Promise` официально входят в список сериализуемых RSC-пропсов (react.dev, `'use client'` → Serializable types) — их НЕ флагать. (Не путать с Pages Router: там `getServerSideProps` сериализует через JSON и `Date` действительно не проходит.)
 - Переменные окружения без префикса `NEXT_PUBLIC_` используются в клиентском коде — рантайм-ошибка в production.
 - `headers()`, `cookies()`, `draftMode()` вызываются в клиентском компоненте.
 - Прямые SQL-запросы или работа с `fs` внутри файла с `"use client"`.
@@ -181,8 +181,8 @@ for f in $(grep -rln '"use client"' app/ components/); do
   grep -n "cookies()\|headers()\|draftMode()\|process\.env\.[A-Z_]*[^_]" "$f"
 done
 
-# Несериализуемое в пропсах (эвристика)
-rg -n "<[A-Z][a-zA-Z]*\s+[a-zA-Z]+=\{.*function|<[A-Z][a-zA-Z]*\s+[a-zA-Z]+=\{.*new Date" -g '*.tsx'
+# Несериализуемое в пропсах (эвристика: функции-литералы; Date/Map/Set сериализуемы — не ищем)
+rg -n "<[A-Z][a-zA-Z]*\s+[a-zA-Z]+=\{.*function|<[A-Z][a-zA-Z]*\s+[a-zA-Z]+=\{\s*\([^)]*\)\s*=>" -g '*.tsx'
 
 # Отсутствие error.tsx и loading.tsx по сегментам
 find app -type d -mindepth 1 | while read d; do

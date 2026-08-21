@@ -98,8 +98,8 @@ class Order {
 
 **Рефакторинг**:
 
-- Минимум три слоя: Presentation (UI / API) → Application (use cases) → Domain (entities, value objects). Data access (repositories) — отдельно.
-- Каждый слой знает только о слое ниже через интерфейс.
+- Критерий здоровья — не число слоёв, а два свойства: зависимости направлены в одну сторону, и бизнес-правила тестируются без HTTP и БД. Классическое разделение Presentation → Application → Domain (+ data access отдельно) — один из способов этого добиться, уместный для крупных приложений; маленькому сервису может хватить двух слоёв.
+- Слой знает только о слое ниже; пересечение границы — через явный интерфейс/функцию.
 
 ### 6. Shared-database antipattern в монолите, мигрирующем к сервисам
 
@@ -156,12 +156,12 @@ class Order {
 
 **Признаки**:
 
-- Repository-interface с одной реализацией, созданной в один день.
+- Repository-interface с одной реализацией, которую никто не подменяет — даже в тестах. (Интерфейс с одной боевой реализацией, но живой тестовой подменой — это п. 7, ports & adapters, и он оправдан.)
 - Фабрики фабрик.
 - Abstract classes с одним подклассом.
 - DI-framework там, где хватит функций.
 
-**Рефакторинг**: inline-ить обратно. YAGNI. Добавить абстракцию тогда, когда появился второй сценарий использования.
+**Рефакторинг**: inline-ить обратно. YAGNI. Добавить абстракцию тогда, когда появился второй сценарий использования (включая тестовый).
 
 ### 12. Бизнес-правила в базе данных (процедуры, триггеры)
 
@@ -183,13 +183,15 @@ Singletons, module-level `let`-переменные, global store с перем�
 
 ## Как искать в коде
 
+Инструменты `madge`/`depcruise` запускай только если они уже стоят в проекте (правило 4 SKILL.md: `npx --no-install`); иначе предложи установку или обойдись rg-эвристиками ниже.
+
 ```bash
 # Циклы зависимостей
-npx madge --circular src/
-npx madge --circular --extensions ts,tsx src/
+npx --no-install madge --circular src/
+npx --no-install madge --circular --extensions ts,tsx src/
 
 # Dependency cruiser — отчёт
-npx depcruise --config .dependency-cruiser.cjs src | less
+npx --no-install depcruise --config .dependency-cruiser.cjs src | less
 
 # Размер папок (подозрительно большие — god packages)
 find src -type d -exec sh -c 'echo $(find "$1" -type f | wc -l) "$1"' _ {} \; | sort -rn | head -20

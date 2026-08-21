@@ -2,7 +2,7 @@
 
 ## Что проверять
 
-Классические smells + набор, специфичный именно для React. Правила актуальны для React 19.x (включая RSC и React Compiler). Зафиксируй точную версию из `package.json`: у проектов с RSC пакеты `react-server-dom-webpack/-turbopack/-parcel` (и React своей линии) должны быть минимум **19.0.4 / 19.1.5 / 19.2.4**. Более ранние версии — включая 19.2.3 — уязвимы к серии CVE конца 2025: RCE CVE-2025-55182 («React2Shell», CVSS 10.0), DoS CVE-2025-55184 / CVE-2025-67779 / CVE-2026-23864, утечка исходников server functions CVE-2025-55183. Это не рефакторинг, а блокирующий security-фикс отдельным коммитом (для Next.js — апгрейд до последнего патча своей минорной линии).
+Классические smells + набор, специфичный именно для React. Правила актуальны для React 19.x (включая RSC и React Compiler; проверено 2026-08 — минимальные безопасные версии и статусы CVE сверяй с актуальным security-advisory React перед рекомендацией). Зафиксируй точную версию из `package.json` — советы про ref-as-prop, `useEffectEvent` и `use` неприменимы к React 18 (например, `web/` в VASRF — React 18.3). У проектов с RSC пакеты `react-server-dom-webpack/-turbopack/-parcel` (и React своей линии) должны быть минимум **19.0.4 / 19.1.5 / 19.2.4**. Более ранние версии — включая 19.2.3 — уязвимы к серии CVE конца 2025: RCE CVE-2025-55182 («React2Shell», CVSS 10.0), DoS CVE-2025-55184 / CVE-2025-67779 / CVE-2026-23864, утечка исходников server functions CVE-2025-55183. Это не рефакторинг, а блокирующий security-фикс отдельным коммитом (для Next.js — апгрейд до последнего патча своей минорной линии).
 
 ### 1. Prop Drilling
 
@@ -195,9 +195,9 @@ const [email, setEmail] = useState("");
 
 **Рефакторинг**: variant-пропс с дискриминированным типом (`variant: "primary" | "secondary"`); отдельные компоненты (`PrimaryButton`, `SecondaryButton`), если вариаций мало; CVA (class-variance-authority) для styling-вариантов.
 
-### 16. Устаревшие API: forwardRef, propTypes, string refs
+### 16. Legacy-API: propTypes и string refs (удалены), forwardRef (не нужен новому коду)
 
-В React 19 `ref` передаётся как обычный проп — `forwardRef` больше не нужен и будет deprecated. `propTypes`, `contextTypes` и string refs удалены.
+`propTypes`, `contextTypes` и string refs в React 19 УДАЛЕНЫ — их наличие блокирует апгрейд. `forwardRef` — другой случай: в React 19 `ref` передаётся как обычный проп, для нового кода `forwardRef` не нужен, и команда React обещает deprecation в будущих версиях, но сейчас он НЕ deprecated и работает. Миграция с него — низкоприоритетная механика (codemod), не «блокирующее устаревание»; не подавай её как срочность.
 
 ```tsx
 // Устаревший паттерн
