@@ -8,6 +8,16 @@ Hotspot — это файл/модуль, который одновременн�
 
 ## Как считать
 
+### Способ 0. Скрипт скилла (предпочтительно)
+
+```bash
+python3 <каталог скилла>/scripts/hotspots.py --repo . --since "1 year ago" --top 20
+```
+
+Read-only, только stdlib. Учитывает переименования (churn склеивается по цепочке rename), исключает merge-коммиты и коммиты ботов (`github-actions[bot]` и т. п. — в этих проектах CI сам коммитит данные корпусов, и без фильтра они раздували бы churn), выкидывает каталоги данных/генерации (`--exclude` добавляет свои). `--json` — для машинной обработки, `--ext py --ext ts` — сузить языки.
+
+**Ловушка облачных сессий: клон НЕГЛУБОКИЙ** (в Claude Code on the web — обычно дни или недели истории), и «churn за год» молча превращается в «churn за неделю». Скрипт сам предупреждает о shallow-клоне; перед hotspot-анализом углуби историю — `git fetch --unshallow origin` (для worktree это read-only) — либо честно пиши в отчёте фактическое окно.
+
 ### Способ 1. Вручную через git log
 
 ```bash
@@ -29,7 +39,7 @@ git log --name-only --pretty=format: \
 wc -l <top-file>
 
 # Цикломатическая сложность (JS/TS)
-npx eslint --rule 'complexity: ["error", 0]' <top-file> 2>&1 | grep "complexity"
+npx --no-install eslint --rule 'complexity: ["error", 0]' <top-file> 2>&1 | grep "complexity"
 
 # Cognitive complexity — через SonarJS или аналог
 ```
@@ -75,7 +85,7 @@ done < /tmp/churn.txt | sort -rn | head -20
 
 Есть бесплатный тариф для open source и pilot-версия. MCP-интеграция позволяет AI-ассистенту запрашивать hotspot-данные напрямую.
 
-### Способ 4. git-hotspots (open source)
+### Способ 4. git-hotspots (open source; пакет придётся скачать — только с согласия пользователя, иначе Способ 0)
 
 ```bash
 npx git-hotspots --since "6 months ago" --extensions ts,tsx

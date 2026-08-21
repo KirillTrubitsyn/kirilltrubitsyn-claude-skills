@@ -141,7 +141,7 @@ xenon --max-absolute D --max-average B .    # как CI-gate
 vulture app/ scripts/ --min-confidence 80
 
 # Дублирование (jscpd умеет Python):
-npx jscpd --min-lines 10 --min-tokens 50 --pattern "**/*.py" .
+npx --no-install jscpd --min-lines 10 --min-tokens 50 --pattern "**/*.py" .
 
 # Циклические импорты:
 pydeps app --show-cycles --no-output

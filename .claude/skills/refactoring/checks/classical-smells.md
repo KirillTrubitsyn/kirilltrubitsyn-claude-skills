@@ -40,9 +40,9 @@
 
 #### 6. Switch Statements / Repeated Conditionals
 
-`switch` или `if-else-if` по типу — почти всегда пропущенный полиморфизм. Особенно если тот же switch повторяется в нескольких местах.
+Smell — когда ОДИН И ТОТ ЖЕ `switch`/`if-else-if` по типу повторяется в нескольких местах: добавление варианта требует синхронной правки всех копий. Единственный switch с exhaustive-check (`never` в TS, `assert_never`/`Literal` в Python) — нормальная, часто лучшая форма диспетчеризации; не предлагай полиморфизм ради полиморфизма.
 
-**Рефакторинг**: Replace Conditional with Polymorphism; Replace Type Code with Subclasses; в функциональных языках — discriminated union + exhaustive check.
+**Рефакторинг** (для повторяющихся switch): Replace Conditional with Polymorphism; Replace Type Code with Subclasses; либо один диспетчер-словарь/discriminated union + exhaustive check, к которому сходятся все точки.
 
 В TypeScript современная альтернатива — discriminated union с `never`-check:
 
@@ -166,12 +166,12 @@ function handle(a: Action): void {
 ```bash
 # Длинные функции:
 # JS/TS — через ESLint-правило (заодно и как CI-gate):
-npx eslint . --rule 'max-lines-per-function: ["error", {"max": 50, "skipBlankLines": true}]'
+npx --no-install eslint . --rule 'max-lines-per-function: ["error", {"max": 50, "skipBlankLines": true}]'
 # Python — функции с рангом сложности C и хуже:
 radon cc -s -n C .
 
 # Дублирование кода (jscpd мультиязычный: JS/TS/Python/Go и др.):
-npx jscpd --min-lines 10 --min-tokens 50 ./src
+npx --no-install jscpd --min-lines 10 --min-tokens 50 ./src
 
 # Длинные списки параметров (TS/JS):
 rg -n "function\s+\w+\([^)]{80,}\)" -g '*.{ts,tsx,js,jsx}'
@@ -184,10 +184,10 @@ rg -n "\(.*: boolean" -g '*.{ts,tsx}'
 rg -n "\b[0-9]{2,}\b" -g '*.{ts,tsx}' | rg -v "(test|spec|\.d\.ts|const|enum)"
 
 # Dead code (JS/TS):
-npx knip
+npx --no-install knip
 
 # Цикломатическая сложность:
-npx eslint . --rule 'complexity: ["error", 10]'
+npx --no-install eslint . --rule 'complexity: ["error", 10]'
 ```
 
 Замечание: для поиска по коду используй `rg` (ripgrep) — его глобы `-g '*.{ts,tsx}'` поддерживают фигурные скобки. В `grep --include="*.{ts,tsx}"` скобки в кавычках НЕ раскрываются, и такая команда молча не находит ничего.

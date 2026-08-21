@@ -1,9 +1,9 @@
 # TypeScript smells
 
-## Контекст версий (июль 2026)
+## Контекст версий (проверено 2026-08; перед версионной рекомендацией сверься с официальным release-блогом TypeScript)
 
 - **TypeScript 6.0** (март 2026) — последний релиз на старой JS-кодовой базе («Strada») и transition-релиз перед 7.0. Новые дефолты: `strict: true`, `module: "esnext"`, плавающий `target` (сейчас es2025). Удалены: `target: es5`, `moduleResolution: classic`, `downlevelIteration`, `module: amd/umd/system`. Deprecated-флаги можно временно глушить `"ignoreDeprecations": "6.0"`, но в 7.0 они становятся жёсткими ошибками — при апгрейде чисти их сразу.
-- **TypeScript 7.0** («Corsa», порт компилятора на Go) — RC с 18 июня 2026, стабильный релиз ожидается в ближайший месяц. Ставится как `npm i -D typescript@rc`; бинарь — обычный `tsc` (отдельный `tsgo` остался только в nightly-пакете `@typescript/native-preview`). В 5–10 раз быстрее 6.0 при идентичном type-checking. Важно для инструментов рефакторинга: стабильный программный API появится только в 7.1 — typescript-eslint, ts-morph и кастомные трансформеры до тех пор работают через TS 6 (side-by-side через npm alias: `npm i -D typescript@npm:@typescript/typescript6`).
+- **TypeScript 7.0** («Corsa», порт компилятора на Go) — **стабильный релиз вышел 8 июля 2026**. Ставится обычным `npm i -D typescript`; бинарь — обычный `tsc` (отдельный `tsgo` остался только в nightly-пакете `@typescript/native-preview`). Полные сборки в ~8–12 раз быстрее TS 6 при идентичном type-checking; strict и депрекации 6.0 стали жёсткими дефолтами. Важно для инструментов рефакторинга: **7.0 вышел БЕЗ стабильного программного API — он заявлен на 7.1** (ориентировочно осень 2026). typescript-eslint, ts-morph и кастомные трансформеры до тех пор работают через TS 6 side-by-side (npm alias: `npm i -D typescript@npm:@typescript/typescript6`). Перед советом «просто апгрейднись на 7» проверь, не зависит ли тулинг проекта от программного API.
 - **Node.js исполняет TypeScript нативно** (type stripping, стабильно с Node 22.18+/24.12+): работает только «erasable»-синтаксис — без `enum`, `namespace` с runtime-кодом и parameter properties. Флаг `--erasableSyntaxOnly` (TS 5.8+) проверяет это на этапе компиляции.
 
 Это влияет на рекомендации ниже: enum → `as const`, и медленный `tsc` теперь лечится не только упрощением типов, но и апгрейдом на 7.0.
@@ -171,7 +171,7 @@ function assertDefined<T>(v: T | null | undefined, msg = "defined"): asserts v i
 - Измерь: `tsc --noEmit --extendedDiagnostics` показывает, какие типы тормозят компиляцию.
 - Упрости сложные условные типы до конкретных (менее гибко, но быстрее).
 - Разбей один огромный тип на несколько именованных.
-- Если узкое место — сам компилятор, а не типы: переходи на TypeScript 7 (`npm i -D typescript@rc`, дальше обычный `tsc --noEmit`) — 5–10x ускорение при идентичном type-checking. Это не отменяет упрощение патологических типов, но снимает боль на больших кодовых базах. Учти: тулинг, зависящий от программного API TS (typescript-eslint, ts-morph), до релиза 7.1 держи на TS 6 через npm alias.
+- Если узкое место — сам компилятор, а не типы: переходи на TypeScript 7 (стабилен с 07/2026: `npm i -D typescript`, дальше обычный `tsc --noEmit`) — порядково быстрее при идентичном type-checking. Это не отменяет упрощение патологических типов, но снимает боль на больших кодовых базах. Учти: тулинг, зависящий от программного API TS (typescript-eslint, ts-morph), до релиза 7.1 держи на TS 6 через npm alias.
 
 ### 12. Missing `readonly`
 
@@ -271,7 +271,7 @@ grep -rnE ":\s*(Function|object)\b|:\s*\{\s*\}" --include="*.ts" --include="*.ts
 cat tsconfig.json | jq '.compilerOptions | { strict, noImplicitAny, noUncheckedIndexedAccess, exactOptionalPropertyTypes, noImplicitOverride, noImplicitReturns, strictNullChecks, erasableSyntaxOnly, verbatimModuleSyntax }'
 
 # Мёртвые экспорты (перед чисткой типов)
-npx knip   # ts-prune заморожен, его автор рекомендует knip
+npx --no-install knip   # ts-prune заморожен, его автор рекомендует knip
 ```
 
 ## Рекомендуемые настройки tsconfig
