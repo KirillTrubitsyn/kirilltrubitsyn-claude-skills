@@ -36,15 +36,18 @@
 
 ## MCP
 
-- Specification root: https://modelcontextprotocol.io/specification/
-- Authorization 2025-11-25:
-  https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization
-- Transports 2025-11-25:
-  https://modelcontextprotocol.io/specification/2025-11-25/basic/transports
-- Security best practices 2025-11-25:
-  https://modelcontextprotocol.io/docs/2025-11-25/tutorials/security/security_best_practices
+Версия спецификации — это дата в формате `YYYY-MM-DD`, и она входит в путь каждой страницы. Поэтому сначала определить действующую ревизию, и только потом строить ссылки.
 
-Перед использованием проверить текущую дату версии в specification root. Различать нормативные `MUST/SHOULD` спецификации и tutorial guidance.
+- Specification root: https://modelcontextprotocol.io/specification/
+- Changelog ревизии: `https://modelcontextprotocol.io/specification/<ревизия>/changelog`
+- Authorization: `https://modelcontextprotocol.io/specification/<ревизия>/basic/authorization`
+- Transports: `https://modelcontextprotocol.io/specification/<ревизия>/basic/transports`
+
+На срез сверки текущей была ревизия `2026-07-28`; предыдущая — `2025-11-25`. Проверять актуальную в specification root, а не подставлять эти значения по памяти.
+
+Аудит вести против той ревизии, которую реализует проверяемый клиент или сервер, а не против самой новой. Между ревизиями меняются не только формулировки: в `2026-07-28` из протокола убраны сессии (`Mcp-Session-Id`) и handshake `initialize`. Требование, взятое из чужой ревизии, даёт ложную находку в обе стороны — и пропуск, и выдуманный недостаток.
+
+Различать нормативные `MUST/SHOULD` спецификации и tutorial guidance. Страницы разделов security-considerations относятся к соответствующей ревизии и меняются вместе с ней.
 
 ## Vulnerabilities и supply chain
 
@@ -109,3 +112,5 @@
 - Не цитировать search results вместо документа.
 - Для изменчивого утверждения прямо писать `проверено YYYY-MM-DD`.
 - Если источник недоступен, не заменять подтверждение уверенной формулировкой.
+
+Первичный источник бывает недостижим из рабочего окружения: закрытый egress, отсутствие сети, требование авторизации. Это не повод перейти на память. Пометить утверждение как `не проверено`, назвать недостижимый источник и указать, какой вывод от него зависит. Вторичный источник в этом случае — лид для последующей проверки, а не подтверждение: на нём нельзя основывать severity, вывод о применимости требования или заявление о версии.

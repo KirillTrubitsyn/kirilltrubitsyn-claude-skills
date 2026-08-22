@@ -39,6 +39,8 @@ IGNORED_DIRS = {
 }
 
 MANIFEST_NAMES = {
+    "build.gradle",
+    "build.gradle.kts",
     "bun.lock",
     "bun.lockb",
     "cargo.lock",
@@ -52,11 +54,15 @@ MANIFEST_NAMES = {
     "go.mod",
     "go.sum",
     "gradle.properties",
+    "mix.exs",
     "package-lock.json",
     "package.json",
+    "pipfile",
+    "pipfile.lock",
     "pnpm-lock.yaml",
     "poetry.lock",
     "pom.xml",
+    "pubspec.yaml",
     "pyproject.toml",
     "requirements.txt",
     "uv.lock",
@@ -65,16 +71,39 @@ MANIFEST_NAMES = {
 
 SECURITY_FILE_NAMES = {
     ".dockerignore",
-    ".env",
-    ".env.example",
     ".gitignore",
     ".npmrc",
+    ".pre-commit-config.yaml",
     ".pypirc",
-    "docker-compose.yml",
+    "alembic.ini",
+    "codeowners",
     "docker-compose.yaml",
+    "docker-compose.yml",
     "dockerfile",
+    "fly.toml",
+    "jenkinsfile",
+    "netlify.toml",
+    "procfile",
+    "railway.json",
+    "railway.toml",
     "security.md",
+    "serverless.yml",
+    "vercel.json",
+    "wrangler.toml",
 }
+
+# Instructions and configuration that drive coding agents. These decide which
+# commands run, which privileges are granted and what gets written into the
+# tree, so they are inventoried separately from ordinary config.
+AGENT_FILE_NAMES = {
+    ".mcp.json",
+    "agents.md",
+    "claude.md",
+    "claude_desktop_config.json",
+    "mcp.json",
+}
+
+AGENT_DIR_NAMES = {".aider", ".claude", ".continue", ".cursor", ".windsurf"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -102,8 +131,9 @@ def is_manifest(path: Path) -> bool:
     name = path.name.lower()
     return (
         name in MANIFEST_NAMES
-        or name.startswith("requirements-") and name.endswith(".txt")
+        or (name.startswith("requirements-") and name.endswith(".txt"))
         or name.startswith("dockerfile")
+        or name.endswith(".csproj")
     )
 
 
@@ -112,21 +142,27 @@ def is_security_relevant(path: Path, root: Path) -> bool:
     rel_parts = {part.lower() for part in path.relative_to(root).parts}
     return (
         name in SECURITY_FILE_NAMES
-        or name.startswith(".env.")
+        # Covers .env, .env.local, .env.production and .envrc alike.
+        or name.startswith(".env")
         or name.endswith((".tf", ".tfvars"))
-        or ".github" in rel_parts
-        and "workflows" in rel_parts
-        or ".gitlab-ci.yml" == name
+        or name == ".gitlab-ci.yml"
         or "cloudformation" in name
-        or "kubernetes" in rel_parts
-        or "helm" in rel_parts
+        or (".github" in rel_parts and "workflows" in rel_parts)
+        or bool(rel_parts & {".circleci", "helm", "k8s", "kubernetes"})
     )
+
+
+def is_agent_artifact(path: Path, root: Path) -> bool:
+    name = path.name.lower()
+    rel_parts = {part.lower() for part in path.relative_to(root).parts}
+    return name in AGENT_FILE_NAMES or bool(rel_parts & AGENT_DIR_NAMES)
 
 
 def build_inventory(root: Path, max_files: int) -> dict[str, object]:
     extensions: collections.Counter[str] = collections.Counter()
     manifests: list[str] = []
     security_files: list[str] = []
+    agent_artifacts: list[str] = []
     skipped_directories: list[str] = []
     errors: list[dict[str, str]] = []
     file_count = 0
@@ -174,6 +210,8 @@ def build_inventory(root: Path, max_files: int) -> dict[str, object]:
                 manifests.append(rel)
             if is_security_relevant(path, root):
                 security_files.append(rel)
+            if is_agent_artifact(path, root):
+                agent_artifacts.append(rel)
 
             if file_count >= max_files:
                 truncated = True
@@ -194,6 +232,7 @@ def build_inventory(root: Path, max_files: int) -> dict[str, object]:
         ),
         "manifests": sorted(manifests, key=str.casefold),
         "security_relevant_files": sorted(security_files, key=str.casefold),
+        "agent_artifacts": sorted(agent_artifacts, key=str.casefold),
         "skipped_directories": sorted(
             skipped_directories, key=str.casefold
         ),
