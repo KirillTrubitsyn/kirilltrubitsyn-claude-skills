@@ -1,11 +1,13 @@
 # Kirill Trubitsyn Claude Skills
 
-Коллекция профессиональных skills для Claude Code — создание юридических, аналитических документов и RAG-интеграции.
+Коллекция профессиональных skills для Claude Code — создание юридических и аналитических документов, RAG-интеграции, аудит безопасности и рефакторинг.
 
 ## Skills
 
 | Skill | Описание | Формат |
 |-------|----------|--------|
+| [security-audit](.claude/skills/security-audit/) | Доказательный аудит безопасности, AI/MCP и цепочки поставок | Отчёт |
+| [refactoring](.claude/skills/refactoring/) | Аудит техдолга и дисциплинированный рефакторинг | Правки |
 | [analytical-brief](.claude/skills/analytical-brief/) | Аналитические справки для руководства | DOCX |
 | [kuznetsov](.claude/skills/kuznetsov/) | Стратегические документы высшего уровня | DOCX |
 | [bevzenko](.claude/skills/bevzenko/) | Глубокие юридические заключения | DOCX |
@@ -16,6 +18,19 @@
 | [google-search](.claude/skills/google-search/) | Веб-поиск через Google Custom Search API | JS |
 
 ## Когда использовать
+
+### security-audit
+Аудит безопасности с явными границами полномочий и доказательными находками.
+- Приложения, API, репозитории, инфраструктура и цепочка поставок
+- AI, RAG, агенты и MCP-интеграции
+- Threat model и план авторизованного пентеста
+- Запускается вручную по запросу; по умолчанию — режим `audit`, только чтение
+
+### refactoring
+Аудит технического долга и рефакторинг с сохранением поведения.
+- Оценка hotspot-ов и code smells
+- План работ с критериями приёмки
+- Правки малыми шагами под тестами
 
 ### analytical-brief
 Аналитические справки в стиле корпоративных юридических документов.
@@ -77,6 +92,7 @@
 - Claude Code 1.0+
 - Node.js 18+ (для DOCX skills)
 - Пакет `docx` для генерации документов
+- Python 3.9+ (для скриптов `security-audit` и `refactoring`; внешних зависимостей нет)
 
 ```bash
 npm install docx
@@ -103,12 +119,34 @@ Skills автоматически активируются при соответ
 
 Добавь RAG-чат с базой знаний...
 → активируется rag-kit
+
+Проведи аудит безопасности этого репозитория...
+→ активируется security-audit
 ```
 
 ## Структура репозитория
 
 ```
 .claude/skills/
+├── security-audit/
+│   ├── SKILL.md
+│   ├── references/
+│   │   ├── active-testing.md
+│   │   ├── ai-mcp.md
+│   │   ├── compliance.md
+│   │   ├── controls.md
+│   │   ├── reporting.md
+│   │   └── sources.md
+│   └── scripts/
+│       ├── inventory.py
+│       └── validate_findings.py
+├── refactoring/
+│   ├── SKILL.md
+│   ├── checks/
+│   ├── prompts/
+│   ├── references/
+│   └── scripts/
+│       └── hotspots.py
 ├── analytical-brief/
 │   └── SKILL.md
 ├── analytics-reports/

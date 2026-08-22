@@ -60,18 +60,28 @@ TEXT_FIELDS = {
 
 ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9-]{4,80}$")
 
+COVERAGE_STATUSES = {"Reviewed", "Partial", "Not tested", "Not applicable"}
+
 # Intentionally broad enough to stop common accidental leaks. Error messages
 # identify only the JSON path and pattern class, never the matched value.
 SECRET_PATTERNS = {
-    "private-key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
-    "aws-access-key": re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"),
+    # Covers RSA/EC/DSA/OPENSSH/ENCRYPTED/PGP armour in one rule.
+    "private-key": re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----"),
+    "aws-access-key": re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16,}"),
     "github-token": re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
     "openai-token": re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b"),
     "anthropic-token": re.compile(r"\bsk-ant-[A-Za-z0-9_-]{20,}\b"),
     "slack-token": re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b"),
+    "google-api-key": re.compile(r"\bAIza[0-9A-Za-z_-]{35,}"),
+    "stripe-key": re.compile(r"\b[sr]k_(?:live|test)_[A-Za-z0-9]{16,}\b"),
+    "telegram-bot-token": re.compile(r"\b\d{6,12}:[A-Za-z0-9_-]{30,45}\b"),
     "bearer-token": re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{16,}\b", re.I),
     "jwt": re.compile(
         r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"
+    ),
+    # postgres://user:password@host, https://user:token@host and similar.
+    "url-credentials": re.compile(
+        r"\b[a-z][a-z0-9+.-]*://[^\s:/@]+:[^\s/@]{3,}@"
     ),
 }
 
@@ -81,7 +91,30 @@ def parse_args() -> argparse.Namespace:
         description="Validate a security-audit findings JSON file."
     )
     parser.add_argument("path", help="Path to findings JSON")
+    parser.add_argument(
+        "--extra-pattern",
+        action="append",
+        default=[],
+        metavar="REGEX",
+        help=(
+            "Additional secret regex for project-specific token formats "
+            "(repeatable). Matches are reported by JSON path only, never "
+            "by value."
+        ),
+    )
     return parser.parse_args()
+
+
+def compile_extra_patterns(expressions: list[str]) -> dict[str, re.Pattern[str]]:
+    compiled: dict[str, re.Pattern[str]] = {}
+    for index, expression in enumerate(expressions):
+        try:
+            compiled[f"custom-{index + 1}"] = re.compile(expression)
+        except re.error as exc:
+            raise ValueError(
+                f"--extra-pattern #{index + 1} is not a valid regex: {exc}"
+            ) from exc
+    return compiled
 
 
 def walk_strings(value: Any, path: str = "$") -> Iterable[tuple[str, str]]:
@@ -95,14 +128,46 @@ def walk_strings(value: Any, path: str = "$") -> Iterable[tuple[str, str]]:
             yield from walk_strings(item, f"{path}.{key}")
 
 
-def validate_secret_redaction(document: Any) -> list[str]:
+def validate_secret_redaction(
+    document: Any, extra: dict[str, re.Pattern[str]] | None = None
+) -> list[str]:
+    patterns = dict(SECRET_PATTERNS)
+    patterns.update(extra or {})
     errors: list[str] = []
     for path, value in walk_strings(document):
-        for label, pattern in SECRET_PATTERNS.items():
+        for label, pattern in patterns.items():
             if pattern.search(value):
                 errors.append(
                     f"{path}: possible unredacted secret ({label}); redact it"
                 )
+    return errors
+
+
+def validate_coverage(coverage: Any) -> list[str]:
+    """Coverage is optional, but a malformed entry hides what was not audited."""
+    if not isinstance(coverage, list):
+        return ["$.coverage: must be an array when present"]
+
+    errors: list[str] = []
+    for index, entry in enumerate(coverage):
+        prefix = f"$.coverage[{index}]"
+        if not isinstance(entry, dict):
+            errors.append(f"{prefix}: must be an object")
+            continue
+        if not nonempty_string(entry.get("domain")):
+            errors.append(f"{prefix}.domain: must be a non-empty string")
+        status = entry.get("status")
+        if status not in COVERAGE_STATUSES:
+            errors.append(
+                f"{prefix}.status: expected one of "
+                f"{', '.join(sorted(COVERAGE_STATUSES))}"
+            )
+        elif status in {"Partial", "Not tested"} and not nonempty_string(
+            entry.get("gaps")
+        ):
+            errors.append(
+                f"{prefix}.gaps: required for status {status}; state what is missing"
+            )
     return errors
 
 
@@ -176,6 +241,12 @@ def load_document(path: Path) -> Any:
 
 def main() -> int:
     args = parse_args()
+    try:
+        extra_patterns = compile_extra_patterns(args.extra_pattern)
+    except ValueError as exc:
+        print(f"Invalid argument: {exc}", file=sys.stderr)
+        return 2
+
     path = Path(args.path).expanduser().resolve()
     try:
         document = load_document(path)
@@ -183,7 +254,7 @@ def main() -> int:
         print(f"Invalid input: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
 
-    errors = validate_secret_redaction(document)
+    errors = validate_secret_redaction(document, extra_patterns)
     warnings: list[str] = []
 
     if isinstance(document, list):
@@ -193,6 +264,8 @@ def main() -> int:
         if not isinstance(findings, list):
             errors.append("$.findings: must be an array")
             findings = []
+        if "coverage" in document:
+            errors.extend(validate_coverage(document["coverage"]))
     else:
         errors.append("$: must be an object or array")
         findings = []
